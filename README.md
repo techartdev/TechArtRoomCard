@@ -1,4 +1,4 @@
-# TechArtRoomCard
+# TechArt Home Assistant Room Card
 
 A dynamic Home Assistant Lovelace room cockpit card with a native HA look and configurable sections.
 
