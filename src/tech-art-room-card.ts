@@ -674,37 +674,6 @@ export class TechArtRoomCardEditor extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @state() private _config!: RoomCardConfig;
 
-  static styles = css`
-    :host {
-      display: block;
-      padding: 8px 0;
-    }
-
-    .editor {
-      display: grid;
-      gap: 12px;
-    }
-
-    .section {
-      border: 1px solid var(--divider-color);
-      border-radius: 12px;
-      padding: 12px;
-      display: grid;
-      gap: 10px;
-    }
-
-    .section-title {
-      font-weight: 600;
-      color: var(--primary-text-color);
-    }
-
-    .lights-grid {
-      display: grid;
-      gap: 10px;
-      grid-template-columns: 1fr;
-    }
-  `;
-
   setConfig(config: RoomCardConfig): void {
     this._config = config;
   }
@@ -714,48 +683,24 @@ export class TechArtRoomCardEditor extends LitElement {
       if (acc && typeof acc === "object") return (acc as Record<string, unknown>)[key];
       return undefined;
     }, this._config);
+    if (Array.isArray(val)) {
+      return val.join(", ");
+    }
     return (val as string | undefined) ?? fallback;
   }
 
-  private _lights(): string[] {
-    const entities = this._config?.lights?.entities;
-    if (Array.isArray(entities)) return entities;
-    if (typeof entities === "string") {
-      return entities
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean);
-    }
-    return [];
-  }
-
-  private _cloneConfig(): RoomCardConfig {
-    const base = this._config ?? { type: "custom:tech-art-room-card" };
-    if (typeof structuredClone === "function") {
-      return structuredClone(base) as RoomCardConfig;
-    }
-    return JSON.parse(JSON.stringify(base)) as RoomCardConfig;
-  }
-
-  private _setByPath(target: unknown, path: string, value: unknown): void {
-    const root = target as Record<string, unknown>;
+  private _emit(path: string, value: string) {
+    const updated: Record<string, unknown> = { ...(this._config ?? { type: "custom:tech-art-room-card" }) };
     const keys = path.split(".");
-    let ptr = root;
-
+    let ptr: Record<string, unknown> = updated;
     keys.forEach((k, i) => {
-      if (i === keys.length - 1) {
-        ptr[k] = value;
-        return;
+      if (i === keys.length - 1) ptr[k] = value;
+      else {
+        ptr[k] = (ptr[k] as Record<string, unknown> | undefined) ?? {};
+        ptr = ptr[k] as Record<string, unknown>;
       }
-      const current = ptr[k];
-      if (!current || typeof current !== "object" || Array.isArray(current)) {
-        ptr[k] = {};
-      }
-      ptr = ptr[k] as Record<string, unknown>;
     });
-  }
 
-  private _emitConfig(updated: RoomCardConfig): void {
     this.dispatchEvent(
       new CustomEvent("config-changed", {
         detail: { config: updated },
@@ -765,156 +710,20 @@ export class TechArtRoomCardEditor extends LitElement {
     );
   }
 
-  private _setField(path: string, value?: string): void {
-    const updated = this._cloneConfig();
-    this._setByPath(updated, path, value ?? "");
-    this._emitConfig(updated);
-  }
-
-  private _setLight(index: number, value?: string): void {
-    const updated = this._cloneConfig();
-    const lights = this._lights().slice(0, 4);
-
-    if (value) {
-      lights[index] = value;
-    } else {
-      lights[index] = "";
-    }
-
-    const normalized = lights.map((v) => v?.trim()).filter(Boolean) as string[];
-    this._setByPath(updated, "lights.entities", normalized);
-    this._emitConfig(updated);
-  }
-
   protected render() {
-    const lights = this._lights();
-
     return html`
-      <div class="editor">
-        <ha-textfield
-          label="Room title"
-          .value=${this._value("title", "Living Room")}
-          @input=${(e: Event) => this._setField("title", (e.target as HTMLInputElement).value)}
-        ></ha-textfield>
-
-        <div class="section">
-          <div class="section-title">Header</div>
-          <ha-entity-picker
-            .hass=${this.hass}
-            .value=${this._value("header.weather_entity")}
-            .includeDomains=${["weather"]}
-            label="Weather entity"
-            @value-changed=${(e: CustomEvent<{ value?: string }>) => this._setField("header.weather_entity", e.detail.value)}
-          ></ha-entity-picker>
-          <ha-entity-picker
-            .hass=${this.hass}
-            .value=${this._value("header.outdoor_temp_entity")}
-            .includeDomains=${["sensor"]}
-            label="Outdoor temperature entity"
-            @value-changed=${(e: CustomEvent<{ value?: string }>) => this._setField("header.outdoor_temp_entity", e.detail.value)}
-          ></ha-entity-picker>
-        </div>
-
-        <div class="section">
-          <div class="section-title">Lights</div>
-          <div class="lights-grid">
-            <ha-entity-picker
-              .hass=${this.hass}
-              .value=${lights[0] ?? ""}
-              .includeDomains=${["light"]}
-              label="Light 1"
-              @value-changed=${(e: CustomEvent<{ value?: string }>) => this._setLight(0, e.detail.value)}
-            ></ha-entity-picker>
-            <ha-entity-picker
-              .hass=${this.hass}
-              .value=${lights[1] ?? ""}
-              .includeDomains=${["light"]}
-              label="Light 2"
-              @value-changed=${(e: CustomEvent<{ value?: string }>) => this._setLight(1, e.detail.value)}
-            ></ha-entity-picker>
-            <ha-entity-picker
-              .hass=${this.hass}
-              .value=${this._value("lights.brightness_entity")}
-              .includeDomains=${["light"]}
-              label="Brightness control entity"
-              @value-changed=${(e: CustomEvent<{ value?: string }>) => this._setField("lights.brightness_entity", e.detail.value)}
-            ></ha-entity-picker>
-          </div>
-        </div>
-
-        <div class="section">
-          <div class="section-title">Climate</div>
-          <ha-entity-picker
-            .hass=${this.hass}
-            .value=${this._value("climate.entity")}
-            .includeDomains=${["climate"]}
-            label="Climate entity"
-            @value-changed=${(e: CustomEvent<{ value?: string }>) => this._setField("climate.entity", e.detail.value)}
-          ></ha-entity-picker>
-          <ha-entity-picker
-            .hass=${this.hass}
-            .value=${this._value("climate.fallback_entity")}
-            label="Climate fallback entity"
-            @value-changed=${(e: CustomEvent<{ value?: string }>) => this._setField("climate.fallback_entity", e.detail.value)}
-          ></ha-entity-picker>
-        </div>
-
-        <div class="section">
-          <div class="section-title">Media & Sensors</div>
-          <ha-entity-picker
-            .hass=${this.hass}
-            .value=${this._value("media.entity")}
-            .includeDomains=${["media_player"]}
-            label="Media entity"
-            @value-changed=${(e: CustomEvent<{ value?: string }>) => this._setField("media.entity", e.detail.value)}
-          ></ha-entity-picker>
-          <ha-entity-picker
-            .hass=${this.hass}
-            .value=${this._value("sensors.air_quality_entity")}
-            .includeDomains=${["sensor"]}
-            label="Air quality entity"
-            @value-changed=${(e: CustomEvent<{ value?: string }>) => this._setField("sensors.air_quality_entity", e.detail.value)}
-          ></ha-entity-picker>
-          <ha-entity-picker
-            .hass=${this.hass}
-            .value=${this._value("sensors.pm25_entity")}
-            .includeDomains=${["sensor"]}
-            label="PM2.5 entity"
-            @value-changed=${(e: CustomEvent<{ value?: string }>) => this._setField("sensors.pm25_entity", e.detail.value)}
-          ></ha-entity-picker>
-          <ha-entity-picker
-            .hass=${this.hass}
-            .value=${this._value("sensors.power_entity")}
-            .includeDomains=${["sensor"]}
-            label="Power entity"
-            @value-changed=${(e: CustomEvent<{ value?: string }>) => this._setField("sensors.power_entity", e.detail.value)}
-          ></ha-entity-picker>
-        </div>
-
-        <div class="section">
-          <div class="section-title">Shades</div>
-          <ha-entity-picker
-            .hass=${this.hass}
-            .value=${this._value("shades.entity")}
-            .includeDomains=${["cover"]}
-            label="Shade entity"
-            @value-changed=${(e: CustomEvent<{ value?: string }>) => this._setField("shades.entity", e.detail.value)}
-          ></ha-entity-picker>
-          <ha-entity-picker
-            .hass=${this.hass}
-            .value=${this._value("shades.secondary_entity")}
-            .includeDomains=${["cover"]}
-            label="Secondary shade entity"
-            @value-changed=${(e: CustomEvent<{ value?: string }>) => this._setField("shades.secondary_entity", e.detail.value)}
-          ></ha-entity-picker>
-          <ha-entity-picker
-            .hass=${this.hass}
-            .value=${this._value("shades.power_entity")}
-            .includeDomains=${["sensor"]}
-            label="Shade power entity"
-            @value-changed=${(e: CustomEvent<{ value?: string }>) => this._setField("shades.power_entity", e.detail.value)}
-          ></ha-entity-picker>
-        </div>
+      <div style="display:grid;gap:8px;">
+        <label>Title <input .value=${this._value("title", "Living Room")} @input=${(e: Event) => this._emit("title", (e.target as HTMLInputElement).value)} /></label>
+        <label>Weather entity <input .value=${this._value("header.weather_entity")} @input=${(e: Event) => this._emit("header.weather_entity", (e.target as HTMLInputElement).value)} /></label>
+        <label>Outside temperature entity <input .value=${this._value("header.outdoor_temp_entity")} @input=${(e: Event) => this._emit("header.outdoor_temp_entity", (e.target as HTMLInputElement).value)} /></label>
+        <label>Lights (comma-separated) <input .value=${this._value("lights.entities")} @input=${(e: Event) => this._emit("lights.entities", (e.target as HTMLInputElement).value)} /></label>
+        <label>Climate entity <input .value=${this._value("climate.entity")} @input=${(e: Event) => this._emit("climate.entity", (e.target as HTMLInputElement).value)} /></label>
+        <label>Climate fallback entity <input .value=${this._value("climate.fallback_entity")} @input=${(e: Event) => this._emit("climate.fallback_entity", (e.target as HTMLInputElement).value)} /></label>
+        <label>Media entity <input .value=${this._value("media.entity")} @input=${(e: Event) => this._emit("media.entity", (e.target as HTMLInputElement).value)} /></label>
+        <label>Air quality entity <input .value=${this._value("sensors.air_quality_entity")} @input=${(e: Event) => this._emit("sensors.air_quality_entity", (e.target as HTMLInputElement).value)} /></label>
+        <label>PM2.5 entity <input .value=${this._value("sensors.pm25_entity")} @input=${(e: Event) => this._emit("sensors.pm25_entity", (e.target as HTMLInputElement).value)} /></label>
+        <label>Power entity <input .value=${this._value("sensors.power_entity")} @input=${(e: Event) => this._emit("sensors.power_entity", (e.target as HTMLInputElement).value)} /></label>
+        <label>Shade entity <input .value=${this._value("shades.entity")} @input=${(e: Event) => this._emit("shades.entity", (e.target as HTMLInputElement).value)} /></label>
       </div>
     `;
   }
