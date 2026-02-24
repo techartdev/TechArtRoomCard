@@ -1,35 +1,29 @@
 # TechArtRoomCard
 
-A dynamic Home Assistant room cockpit card with a native HA look and configurable sections.
+A dynamic Home Assistant Lovelace room cockpit card with a native HA look and configurable sections.
 
 ## Highlights
 
 - 2-column room hub layout (header, lights, climate, media, sensors/power, shades)
 - Dynamic section rendering: hides panels or rows when configured entities are missing/unavailable
 - Climate fallback support (show any alternate entity when no HVAC entity is wired)
-- Built-in visual card editor for common entity mapping
+- Built-in card editor for common entity mapping (visual UI in Lovelace editor)
 - Native-style rounded surfaces, spacing, dividers, and accent usage
-
-## HACS repository type (important)
-
-Use **Dashboard** when adding this repository in HACS.
-
-> Do **not** use `Template` for this repo; this is a frontend dashboard card.
 
 ## Installation
 
 ### HACS (Recommended)
 
 1. Open HACS in Home Assistant.
-2. Go to **Dashboard** and open the custom repositories dialog.
-3. Add `https://github.com/techartdev/TechArtRoomCard` with type **Dashboard**.
+2. Go to **Frontend** → **Custom repositories**.
+3. Add `https://github.com/techartdev/TechArtRoomCard` as **Lovelace**.
 4. Install **TechArt Room Card**.
 5. Reload browser.
 
 ### Manual
 
-1. Download `tech-art-room-card.js` from the latest release.
-2. Place file in `config/www`.
+1. Build/download `tech-art-room-card.js`.
+2. Copy to `config/www`.
 3. Add resource `/local/tech-art-room-card.js` as JavaScript module.
 
 ## Example configuration
@@ -66,7 +60,7 @@ shades:
 
 - If `climate.entity` is absent/unavailable and `climate.fallback_entity` exists, fallback is shown instead of HVAC controls.
 - Lights/media/sensors/shades panels are hidden automatically when configured entities are missing.
-- Use the visual card editor for common fields (title, weather/temp, lights, climate, media, sensors, shades).
+- Use Lovelace visual card editor for common fields (title, weather/temp, lights, climate, media, sensors, shades).
 
 ## Development
 
