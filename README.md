@@ -2,6 +2,9 @@
 
 A dynamic Home Assistant Lovelace room cockpit card with a native HA look and configurable sections.
 
+<img width="1057" height="648" alt="image" src="https://github.com/user-attachments/assets/e37dc940-acf1-4750-9b85-350d2210f3fc" />
+
+
 ## Highlights
 
 - 2-column room hub layout (header, lights, climate, media, sensors/power, shades)
