@@ -258,9 +258,10 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         </section>
       `;
         }
-        const currentTemp = climate.attributes.current_temperature ??
-            Number(climate.state) ?? 0;
-        const target = climate.attributes.temperature ?? currentTemp;
+        const fallbackSensor = this._e(this._config.climate?.fallback_entity);
+        const acTemp = climate.attributes.current_temperature ?? Number(climate.state) ?? 0;
+        const currentTemp = fallbackSensor ? Number(fallbackSensor.state) : acTemp;
+        const target = climate.attributes.temperature ?? acTemp;
         const modes = climate.attributes.hvac_modes ?? [];
         const active = climate.state;
         return b `

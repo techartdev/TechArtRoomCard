@@ -712,10 +712,10 @@ export class TechArtRoomCard extends LitElement {
       `;
     }
 
-    const currentTemp =
-      (climate.attributes.current_temperature as number | undefined) ??
-      Number(climate.state) ?? 0;
-    const target = (climate.attributes.temperature as number | undefined) ?? currentTemp;
+    const fallbackSensor = this._e(this._config.climate?.fallback_entity);
+    const acTemp = (climate.attributes.current_temperature as number | undefined) ?? Number(climate.state) ?? 0;
+    const currentTemp = fallbackSensor ? Number(fallbackSensor.state) : acTemp;
+    const target = (climate.attributes.temperature as number | undefined) ?? acTemp;
     const modes = (climate.attributes.hvac_modes as string[] | undefined) ?? [];
     const active = climate.state;
 
