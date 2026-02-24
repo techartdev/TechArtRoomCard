@@ -1080,24 +1080,22 @@ export class TechArtRoomCardEditor extends LitElement {
         <div class="section">
           <div class="section-title">Header</div>
           <div class="form-row">
-            <ha-entity-picker
+            <label>Weather entity</label>
+            <ha-selector
               .hass=${this.hass}
               .value=${this._value("header.weather_entity")}
-              .includeDomains=${["weather"]}
-              label="Weather entity"
-              allow-custom-entity
+              .selector=${{ entity: { domain: "weather" } }}
               @value-changed=${(e: CustomEvent) => this._pick("header.weather_entity", e.detail.value)}
-            ></ha-entity-picker>
+            ></ha-selector>
           </div>
           <div class="form-row">
-            <ha-entity-picker
+            <label>Outside temperature entity</label>
+            <ha-selector
               .hass=${this.hass}
               .value=${this._value("header.outdoor_temp_entity")}
-              .includeDomains=${["sensor"]}
-              label="Outside temperature entity"
-              allow-custom-entity
+              .selector=${{ entity: { domain: "sensor" } }}
               @value-changed=${(e: CustomEvent) => this._pick("header.outdoor_temp_entity", e.detail.value)}
-            ></ha-entity-picker>
+            ></ha-selector>
           </div>
         </div>
 
@@ -1108,18 +1106,16 @@ export class TechArtRoomCardEditor extends LitElement {
             <div class="light-entities">
               ${lightEntities.map((entityId, idx) => html`
                 <div class="light-entity-row">
-                  <ha-entity-picker
+                  <ha-selector
                     .hass=${this.hass}
                     .value=${entityId}
-                    .includeDomains=${["light"]}
-                    label="Light entity"
-                    allow-custom-entity
+                    .selector=${{ entity: { domain: "light" } }}
                     @value-changed=${(e: CustomEvent) => {
                       const updated = [...lightEntities];
                       updated[idx] = e.detail.value;
                       this._setLightEntities(updated.filter(Boolean));
                     }}
-                  ></ha-entity-picker>
+                  ></ha-selector>
                   <button class="remove-btn" @click=${() => {
                     const updated = lightEntities.filter((_, i) => i !== idx);
                     this._setLightEntities(updated);
@@ -1130,104 +1126,95 @@ export class TechArtRoomCardEditor extends LitElement {
             </div>
           </div>
           <div class="form-row">
-            <ha-entity-picker
+            <label>Brightness entity (optional, defaults to first light)</label>
+            <ha-selector
               .hass=${this.hass}
               .value=${this._value("lights.brightness_entity")}
-              .includeDomains=${["light"]}
-              label="Brightness entity (optional, defaults to first light)"
-              allow-custom-entity
+              .selector=${{ entity: { domain: "light" } }}
               @value-changed=${(e: CustomEvent) => this._pick("lights.brightness_entity", e.detail.value)}
-            ></ha-entity-picker>
+            ></ha-selector>
           </div>
         </div>
 
         <div class="section">
           <div class="section-title">Climate</div>
           <div class="form-row">
-            <ha-entity-picker
+            <label>Climate entity</label>
+            <ha-selector
               .hass=${this.hass}
               .value=${this._value("climate.entity")}
-              .includeDomains=${["climate"]}
-              label="Climate entity"
-              allow-custom-entity
+              .selector=${{ entity: { domain: "climate" } }}
               @value-changed=${(e: CustomEvent) => this._pick("climate.entity", e.detail.value)}
-            ></ha-entity-picker>
+            ></ha-selector>
           </div>
           <div class="form-row">
-            <ha-entity-picker
+            <label>Fallback temperature sensor (when no climate entity)</label>
+            <ha-selector
               .hass=${this.hass}
               .value=${this._value("climate.fallback_entity")}
-              .includeDomains=${["sensor"]}
-              label="Fallback temperature sensor (when no climate entity)"
-              allow-custom-entity
+              .selector=${{ entity: { domain: "sensor" } }}
               @value-changed=${(e: CustomEvent) => this._pick("climate.fallback_entity", e.detail.value)}
-            ></ha-entity-picker>
+            ></ha-selector>
           </div>
         </div>
 
         <div class="section">
           <div class="section-title">Media</div>
           <div class="form-row">
-            <ha-entity-picker
+            <label>Media player entity</label>
+            <ha-selector
               .hass=${this.hass}
               .value=${this._value("media.entity")}
-              .includeDomains=${["media_player"]}
-              label="Media player entity"
-              allow-custom-entity
+              .selector=${{ entity: { domain: "media_player" } }}
               @value-changed=${(e: CustomEvent) => this._pick("media.entity", e.detail.value)}
-            ></ha-entity-picker>
+            ></ha-selector>
           </div>
         </div>
 
         <div class="section">
           <div class="section-title">Sensors</div>
           <div class="form-row">
-            <ha-entity-picker
+            <label>Air quality entity</label>
+            <ha-selector
               .hass=${this.hass}
               .value=${this._value("sensors.air_quality_entity")}
-              .includeDomains=${["sensor"]}
-              label="Air quality entity"
-              allow-custom-entity
+              .selector=${{ entity: { domain: "sensor" } }}
               @value-changed=${(e: CustomEvent) => this._pick("sensors.air_quality_entity", e.detail.value)}
-            ></ha-entity-picker>
+            ></ha-selector>
           </div>
           <div class="form-row">
-            <ha-entity-picker
+            <label>PM2.5 entity</label>
+            <ha-selector
               .hass=${this.hass}
               .value=${this._value("sensors.pm25_entity")}
-              .includeDomains=${["sensor"]}
-              label="PM2.5 entity"
-              allow-custom-entity
+              .selector=${{ entity: { domain: "sensor" } }}
               @value-changed=${(e: CustomEvent) => this._pick("sensors.pm25_entity", e.detail.value)}
-            ></ha-entity-picker>
+            ></ha-selector>
           </div>
           <div class="form-row">
-            <ha-entity-picker
+            <label>Power entity</label>
+            <ha-selector
               .hass=${this.hass}
               .value=${this._value("sensors.power_entity")}
-              .includeDomains=${["sensor"]}
-              label="Power entity"
-              allow-custom-entity
+              .selector=${{ entity: { domain: "sensor" } }}
               @value-changed=${(e: CustomEvent) => this._pick("sensors.power_entity", e.detail.value)}
-            ></ha-entity-picker>
+            ></ha-selector>
           </div>
           <div class="form-row">
             <label>Extra sensor entities</label>
             <div class="light-entities">
               ${extraEntities.map((entityId, idx) => html`
                 <div class="light-entity-row">
-                  <ha-entity-picker
+                  <ha-selector
                     .hass=${this.hass}
                     .value=${entityId}
-                    .includeDomains=${["sensor", "binary_sensor"]}
-                    label="Sensor entity"
-                    allow-custom-entity
+                    .selector=${{ entity: { domain: ["sensor", "binary_sensor"] } }}
                     @value-changed=${(e: CustomEvent) => {
                       const updated = [...extraEntities];
                       updated[idx] = e.detail.value;
                       this._setExtraEntities(updated.filter(Boolean));
                     }}
-                  ></ha-entity-picker>
+                  ></ha-selector>
                   <button class="remove-btn" @click=${() => {
                     const updated = extraEntities.filter((_, i) => i !== idx);
                     this._setExtraEntities(updated);
@@ -1242,43 +1229,40 @@ export class TechArtRoomCardEditor extends LitElement {
         <div class="section">
           <div class="section-title">Shades</div>
           <div class="form-row">
-            <ha-entity-picker
+            <label>Shade entity</label>
+            <ha-selector
               .hass=${this.hass}
               .value=${this._value("shades.entity")}
-              .includeDomains=${["cover"]}
-              label="Shade entity"
-              allow-custom-entity
+              .selector=${{ entity: { domain: "cover" } }}
               @value-changed=${(e: CustomEvent) => this._pick("shades.entity", e.detail.value)}
-            ></ha-entity-picker>
+            ></ha-selector>
           </div>
           <div class="form-row">
-            <ha-entity-picker
+            <label>Secondary shade entity</label>
+            <ha-selector
               .hass=${this.hass}
               .value=${this._value("shades.secondary_entity")}
-              .includeDomains=${["cover"]}
-              label="Secondary shade entity"
-              allow-custom-entity
+              .selector=${{ entity: { domain: "cover" } }}
               @value-changed=${(e: CustomEvent) => this._pick("shades.secondary_entity", e.detail.value)}
-            ></ha-entity-picker>
+            ></ha-selector>
           </div>
           <div class="form-row">
-            <ha-entity-picker
+            <label>Shade power entity</label>
+            <ha-selector
               .hass=${this.hass}
               .value=${this._value("shades.power_entity")}
-              .includeDomains=${["sensor"]}
-              label="Shade power entity"
-              allow-custom-entity
+              .selector=${{ entity: { domain: "sensor" } }}
               @value-changed=${(e: CustomEvent) => this._pick("shades.power_entity", e.detail.value)}
-            ></ha-entity-picker>
+            ></ha-selector>
           </div>
           <div class="form-row">
-            <ha-entity-picker
+            <label>Fallback entity</label>
+            <ha-selector
               .hass=${this.hass}
               .value=${this._value("shades.fallback_entity")}
-              label="Fallback entity"
-              allow-custom-entity
+              .selector=${{ entity: {} }}
               @value-changed=${(e: CustomEvent) => this._pick("shades.fallback_entity", e.detail.value)}
-            ></ha-entity-picker>
+            ></ha-selector>
           </div>
         </div>
       </div>
