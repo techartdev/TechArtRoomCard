@@ -1,6 +1,8 @@
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
+const CARD_VERSION = __CARD_VERSION__;
+
 interface HomeAssistant {
   states: Record<string, HassEntity>;
   callService: (
@@ -298,26 +300,40 @@ export class TechArtRoomCard extends LitElement {
 
   setConfig(config: RoomCardConfig): void {
     if (!config?.type) {
-      throw new Error("Invalid configuration");
+      throw new Error("TechArt Room Card: Missing 'type: custom:tech-art-room-card' in configuration");
     }
-    const lightsConfig = config.lights ?? {};
-    const lightEntities = Array.isArray(lightsConfig.entities)
-      ? lightsConfig.entities
-      : typeof lightsConfig.entities === "string"
-        ? lightsConfig.entities
-            .split(",")
-            .map((v: string) => v.trim())
-            .filter(Boolean)
-        : [];
 
+    if (config.type !== "custom:tech-art-room-card") {
+      throw new Error(`TechArt Room Card: Invalid type "${config.type}". Expected "custom:tech-art-room-card"`);
+    }
+
+    // Parse lights entities - handle array, comma-separated string, or undefined
+    let lightEntities: string[] = [];
+    const rawLights = config.lights?.entities;
+    if (Array.isArray(rawLights)) {
+      lightEntities = rawLights.filter((e): e is string => typeof e === "string" && e.trim() !== "");
+    } else if (typeof rawLights === "string" && rawLights.trim() !== "") {
+      lightEntities = rawLights.split(",").map((v) => v.trim()).filter(Boolean);
+    }
+
+    // Merge config with defaults (user config takes precedence)
     this._config = {
-      title: "Living Room",
-      header: { show_clock: true, show_weather: true },
-      ...config,
-      lights: {
-        ...lightsConfig,
-        entities: lightEntities,
+      type: config.type,
+      title: config.title ?? "Living Room",
+      header: {
+        show_clock: config.header?.show_clock ?? true,
+        show_weather: config.header?.show_weather ?? true,
+        weather_entity: config.header?.weather_entity,
+        outdoor_temp_entity: config.header?.outdoor_temp_entity,
       },
+      lights: {
+        entities: lightEntities,
+        brightness_entity: config.lights?.brightness_entity,
+      },
+      climate: config.climate,
+      media: config.media,
+      sensors: config.sensors,
+      shades: config.shades,
     };
   }
 
@@ -674,6 +690,55 @@ export class TechArtRoomCardEditor extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @state() private _config!: RoomCardConfig;
 
+  static styles = css`
+    .editor-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .section {
+      border: 1px solid var(--divider-color);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 12px;
+      color: var(--primary-text-color);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .form-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+    .form-row:last-child {
+      margin-bottom: 0;
+    }
+    label {
+      font-size: 12px;
+      color: var(--secondary-text-color);
+      font-weight: 400;
+    }
+    input {
+      background: var(--card-background-color);
+      border: 1px solid var(--divider-color);
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 14px;
+      color: var(--primary-text-color);
+      width: 100%;
+      box-sizing: border-box;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+    }
+  `;
+
   setConfig(config: RoomCardConfig): void {
     this._config = config;
   }
@@ -712,28 +777,109 @@ export class TechArtRoomCardEditor extends LitElement {
 
   protected render() {
     return html`
-      <div style="display:grid;gap:8px;">
-        <label>Title <input .value=${this._value("title", "Living Room")} @input=${(e: Event) => this._emit("title", (e.target as HTMLInputElement).value)} /></label>
-        <label>Weather entity <input .value=${this._value("header.weather_entity")} @input=${(e: Event) => this._emit("header.weather_entity", (e.target as HTMLInputElement).value)} /></label>
-        <label>Outside temperature entity <input .value=${this._value("header.outdoor_temp_entity")} @input=${(e: Event) => this._emit("header.outdoor_temp_entity", (e.target as HTMLInputElement).value)} /></label>
-        <label>Lights (comma-separated) <input .value=${this._value("lights.entities")} @input=${(e: Event) => this._emit("lights.entities", (e.target as HTMLInputElement).value)} /></label>
-        <label>Climate entity <input .value=${this._value("climate.entity")} @input=${(e: Event) => this._emit("climate.entity", (e.target as HTMLInputElement).value)} /></label>
-        <label>Climate fallback entity <input .value=${this._value("climate.fallback_entity")} @input=${(e: Event) => this._emit("climate.fallback_entity", (e.target as HTMLInputElement).value)} /></label>
-        <label>Media entity <input .value=${this._value("media.entity")} @input=${(e: Event) => this._emit("media.entity", (e.target as HTMLInputElement).value)} /></label>
-        <label>Air quality entity <input .value=${this._value("sensors.air_quality_entity")} @input=${(e: Event) => this._emit("sensors.air_quality_entity", (e.target as HTMLInputElement).value)} /></label>
-        <label>PM2.5 entity <input .value=${this._value("sensors.pm25_entity")} @input=${(e: Event) => this._emit("sensors.pm25_entity", (e.target as HTMLInputElement).value)} /></label>
-        <label>Power entity <input .value=${this._value("sensors.power_entity")} @input=${(e: Event) => this._emit("sensors.power_entity", (e.target as HTMLInputElement).value)} /></label>
-        <label>Shade entity <input .value=${this._value("shades.entity")} @input=${(e: Event) => this._emit("shades.entity", (e.target as HTMLInputElement).value)} /></label>
+      <div class="editor-container">
+        <div class="form-row">
+          <label>Room title</label>
+          <input .value=${this._value("title", "Living Room")} @input=${(e: Event) => this._emit("title", (e.target as HTMLInputElement).value)} />
+        </div>
+
+        <div class="section">
+          <div class="section-title">Header</div>
+          <div class="form-row">
+            <label>Weather entity</label>
+            <input .value=${this._value("header.weather_entity")} @input=${(e: Event) => this._emit("header.weather_entity", (e.target as HTMLInputElement).value)} />
+          </div>
+          <div class="form-row">
+            <label>Outside temperature entity</label>
+            <input .value=${this._value("header.outdoor_temp_entity")} @input=${(e: Event) => this._emit("header.outdoor_temp_entity", (e.target as HTMLInputElement).value)} />
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Lights</div>
+          <div class="form-row">
+            <label>Light entities (comma-separated)</label>
+            <input .value=${this._value("lights.entities")} @input=${(e: Event) => this._emit("lights.entities", (e.target as HTMLInputElement).value)} />
+          </div>
+          <div class="form-row">
+            <label>Brightness entity (optional)</label>
+            <input .value=${this._value("lights.brightness_entity")} @input=${(e: Event) => this._emit("lights.brightness_entity", (e.target as HTMLInputElement).value)} />
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Climate</div>
+          <div class="form-row">
+            <label>Climate entity</label>
+            <input .value=${this._value("climate.entity")} @input=${(e: Event) => this._emit("climate.entity", (e.target as HTMLInputElement).value)} />
+          </div>
+          <div class="form-row">
+            <label>Fallback entity (temperature sensor)</label>
+            <input .value=${this._value("climate.fallback_entity")} @input=${(e: Event) => this._emit("climate.fallback_entity", (e.target as HTMLInputElement).value)} />
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Media</div>
+          <div class="form-row">
+            <label>Media player entity</label>
+            <input .value=${this._value("media.entity")} @input=${(e: Event) => this._emit("media.entity", (e.target as HTMLInputElement).value)} />
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Sensors</div>
+          <div class="form-row">
+            <label>Air quality entity</label>
+            <input .value=${this._value("sensors.air_quality_entity")} @input=${(e: Event) => this._emit("sensors.air_quality_entity", (e.target as HTMLInputElement).value)} />
+          </div>
+          <div class="form-row">
+            <label>PM2.5 entity</label>
+            <input .value=${this._value("sensors.pm25_entity")} @input=${(e: Event) => this._emit("sensors.pm25_entity", (e.target as HTMLInputElement).value)} />
+          </div>
+          <div class="form-row">
+            <label>Power entity</label>
+            <input .value=${this._value("sensors.power_entity")} @input=${(e: Event) => this._emit("sensors.power_entity", (e.target as HTMLInputElement).value)} />
+          </div>
+          <div class="form-row">
+            <label>Extra sensors (comma-separated entity IDs)</label>
+            <input .value=${this._value("sensors.extras")} @input=${(e: Event) => this._emit("sensors.extras", (e.target as HTMLInputElement).value)} />
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Shades</div>
+          <div class="form-row">
+            <label>Shade entity</label>
+            <input .value=${this._value("shades.entity")} @input=${(e: Event) => this._emit("shades.entity", (e.target as HTMLInputElement).value)} />
+          </div>
+          <div class="form-row">
+            <label>Secondary shade entity</label>
+            <input .value=${this._value("shades.secondary_entity")} @input=${(e: Event) => this._emit("shades.secondary_entity", (e.target as HTMLInputElement).value)} />
+          </div>
+          <div class="form-row">
+            <label>Shade power entity</label>
+            <input .value=${this._value("shades.power_entity")} @input=${(e: Event) => this._emit("shades.power_entity", (e.target as HTMLInputElement).value)} />
+          </div>
+          <div class="form-row">
+            <label>Fallback entity</label>
+            <input .value=${this._value("shades.fallback_entity")} @input=${(e: Event) => this._emit("shades.fallback_entity", (e.target as HTMLInputElement).value)} />
+          </div>
+        </div>
       </div>
     `;
   }
 }
 
 declare global {
+  const __CARD_VERSION__: string;
   interface HTMLElementTagNameMap {
     "tech-art-room-card": TechArtRoomCard;
   }
 }
+
+// Export version for cache-busting queries
+export { CARD_VERSION };
 
 type WindowWithCustomCards = typeof window & { customCards: unknown[] };
 const win = window as WindowWithCustomCards;
