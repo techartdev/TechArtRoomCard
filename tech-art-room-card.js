@@ -72,7 +72,7 @@ const t=t=>(e,o)=>{ void 0!==o?o.addInitializer(()=>{customElements.define(t,e);
  * SPDX-License-Identifier: BSD-3-Clause
  */function r(r){return n({...r,state:true,attribute:false})}
 
-const CARD_VERSION = "0.1.6";
+const CARD_VERSION = "0.1.7";
 let TechArtRoomCard = class TechArtRoomCard extends i {
     setConfig(config) {
         if (!config?.type) {
@@ -181,28 +181,20 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         const outside = this._e(cfg.outdoor_temp_entity);
         return b `
       <div class="header">
-        <div>
-          ${cfg.show_clock !== false
+        ${cfg.show_clock !== false
             ? b `
-                <div class="time">
-                  ${now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-                </div>
-                <div class="date">
-                  ${now.toLocaleDateString([], {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-            })}
-                </div>
-              `
-            : A}
-        </div>
+              <div class="clock">
+                <span class="time">${now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
+                <span class="date">${now.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}</span>
+              </div>
+            `
+            : b `<div></div>`}
         <div class="title">${this._config.title ?? "Room"}</div>
         <div class="weather">
           ${cfg.show_weather !== false && weather
             ? b `
                 <ha-icon icon="${weather.attributes.icon ?? "mdi:weather-partly-cloudy"}"></ha-icon>
-                <span>${outside?.state ?? weather.attributes.temperature ?? "--"}°</span>
+                <span class="weather-temp">${outside?.state ?? weather.attributes.temperature ?? "--"}°</span>
               `
             : A}
         </div>
@@ -218,23 +210,18 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         const brightness = Math.round(((bEntity?.attributes.brightness ?? 0) / 255) * 100);
         return b `
       <section class="panel">
-        <h3>Lights</h3>
+        <div class="panel-title">Lights</div>
         ${lights.map((id) => {
-            const state = this._e(id)?.state;
+            const isOn = this._e(id)?.state === "on";
             return b `
-            <div class="row" @click=${() => this._openMoreInfo(id)}>
-              <ha-icon icon="mdi:lightbulb"></ha-icon>
-              <div class="name">${this._name(id)}</div>
+            <div class="light-row" @click=${() => this._openMoreInfo(id)}>
+              <ha-icon icon="mdi:lightbulb${isOn ? "" : "-outline"}"></ha-icon>
+              <span class="entity-name">${this._name(id)}</span>
               <button
-                class="pill ${state === "on" ? "" : "off"}"
-                @click=${(ev) => {
-                ev.stopPropagation();
-                this._toggle(id);
-            }}
-              >
-                ${state === "on" ? "ON" : "OFF"}
-              </button>
-              <ha-icon icon="mdi:chevron-right"></ha-icon>
+                class="pill ${isOn ? "on" : "off"}"
+                @click=${(ev) => { ev.stopPropagation(); this._toggle(id); }}
+              >${isOn ? "ON" : "OFF"}</button>
+              <ha-icon class="chevron" icon="mdi:chevron-right"></ha-icon>
             </div>
           `;
         })}
@@ -246,7 +233,7 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
             .value=${String(Number.isFinite(brightness) ? brightness : 50)}
             @change=${(ev) => this._setBrightness(bEntityId, Number(ev.currentTarget.value))}
           />
-          <strong>${brightness}%</strong>
+          <span class="slider-label">${brightness}%</span>
         </div>
       </section>
     `;
@@ -263,26 +250,28 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
                 return A;
             return b `
         <section class="panel">
-          <h3>Climate</h3>
-          <div class="temp">${fb.state}</div>
-          <div class="secondary">${this._name(fallback)}</div>
+          <div class="panel-title">Climate</div>
+          <div class="climate-body">
+            <span class="climate-temp">${fb.state}°</span>
+            <span class="climate-setpoint">${this._name(fallback)}</span>
+          </div>
         </section>
       `;
         }
         const currentTemp = climate.attributes.current_temperature ??
-            Number(climate.state) ??
-            0;
+            Number(climate.state) ?? 0;
         const target = climate.attributes.temperature ?? currentTemp;
         const modes = climate.attributes.hvac_modes ?? [];
         const active = climate.state;
         return b `
       <section class="panel">
-        <h3>Climate</h3>
-        <div class="climate-main">
-          <div class="secondary">${active.toUpperCase()}</div>
-          <div class="temp">${Math.round(currentTemp)}°</div>
-          <div class="secondary">Set to ${Math.round(target)}°</div>
+        <div class="panel-title">Climate</div>
+        <div class="climate-body">
+          <span class="climate-mode-label">${active}</span>
+          <span class="climate-temp">${Math.round(currentTemp)}°</span>
+          <span class="climate-setpoint">Set to ${Math.round(target)}°</span>
           <input
+            class="climate-slider"
             type="range"
             min="10"
             max="32"
@@ -293,11 +282,9 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         <div class="mode-row">
           ${modes.map((mode) => b `
               <button
-                class="mode ${mode === active ? "active" : ""}"
+                class="mode-btn ${mode === active ? "active" : ""}"
                 @click=${() => this._setHvacMode(climate.entity_id, mode)}
-              >
-                ${mode}
-              </button>
+              >${mode}</button>
             `)}
         </div>
       </section>
@@ -310,14 +297,14 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         const art = media.attributes.entity_picture;
         return b `
       <section class="panel">
-        <h3>Media</h3>
+        <div class="panel-title">Media</div>
         <div class="media-row" @click=${() => this._openMoreInfo(media.entity_id)}>
           ${art ? b `<img class="thumb" src="${art}" alt="album art" />` : b `<div class="thumb"></div>`}
-          <div>
-            <div class="name">${this._name(media.entity_id)}</div>
-            <div class="secondary">${String(media.attributes.media_title ?? media.state)}</div>
+          <div class="media-info">
+            <div class="media-title">${this._name(media.entity_id)}</div>
+            <div class="media-subtitle">${String(media.attributes.media_title ?? media.state)}</div>
           </div>
-          <button class="mode" @click=${(ev) => {
+          <button class="media-play" @click=${(ev) => {
             ev.stopPropagation();
             this.hass.callService("media_player", media.state === "playing" ? "media_pause" : "media_play", {
                 entity_id: media.entity_id,
@@ -343,14 +330,14 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
             return A;
         return b `
       <section class="panel">
-        <h3>Sensors & Power</h3>
-        <div class="chipline">
-          ${aq ? b `<div class="chip">Air Quality: ${aq.state}</div>` : A}
-          ${pm ? b `<div class="chip">PM2.5: ${pm.state}</div>` : A}
-          ${power ? b `<div class="chip">Power: ${power.state} ${power.attributes.unit_of_measurement ?? ""}</div>` : A}
+        <div class="panel-title">Sensors & Power</div>
+        <div class="sensor-chips">
+          ${aq ? b `<span class="sensor-chip"><ha-icon icon="mdi:air-filter"></ha-icon> Air Quality: ${aq.state}</span>` : A}
+          ${pm ? b `<span class="sensor-chip"><ha-icon icon="mdi:blur"></ha-icon> PM2.5: ${pm.state} ${pm.attributes.unit_of_measurement ?? ""}</span>` : A}
+          ${power ? b `<span class="sensor-chip"><ha-icon icon="mdi:flash"></ha-icon> ${power.state} ${power.attributes.unit_of_measurement ?? ""}</span>` : A}
           ${extras.map((item) => {
             const e = this._e(item.entity);
-            return b `<div class="chip">${item.name ?? this._name(item.entity)}: ${e.state}</div>`;
+            return b `<span class="sensor-chip">${item.name ?? this._name(item.entity)}: ${e.state} ${e.attributes.unit_of_measurement ?? ""}</span>`;
         })}
         </div>
       </section>
@@ -364,42 +351,51 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         const fallback = this._e(cfg?.fallback_entity);
         if (!shade && !second && !power && !fallback)
             return A;
+        const position = shade?.attributes.current_position ?? 0;
         return b `
       <section class="panel">
-        <h3>Shades</h3>
+        <div class="panel-title">Shades</div>
         ${shade
             ? b `
-              <div class="slider-row">
-                <div class="name">${shade.attributes.current_position ?? 0}%</div>
+              <div class="shade-slider-wrap">
                 <ha-icon icon="mdi:window-shutter"></ha-icon>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  .value=${String(position)}
+                  @change=${(ev) => this._setCoverPosition(shade.entity_id, Number(ev.currentTarget.value))}
+                />
+                <span class="slider-label">${position}%</span>
               </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                .value=${String(shade.attributes.current_position ?? 0)}
-                @change=${(ev) => this._setCoverPosition(shade.entity_id, Number(ev.currentTarget.value))}
-              />
             `
             : A}
         ${second
-            ? b `<div class="row" @click=${() => this._openMoreInfo(second.entity_id)}>
-              <ha-icon icon="mdi:window-shutter-open"></ha-icon>
-              <div class="name">${this._name(second.entity_id)}</div>
-              <div>${second.state}</div>
-              <ha-icon icon="mdi:chevron-right"></ha-icon>
-            </div>`
+            ? b `
+              <div class="shade-row" @click=${() => this._openMoreInfo(second.entity_id)}>
+                <ha-icon icon="mdi:window-shutter-open"></ha-icon>
+                <span class="entity-name">${this._name(second.entity_id)}</span>
+                <span class="shade-position">${second.state}</span>
+                <ha-icon class="chevron" icon="mdi:chevron-right"></ha-icon>
+              </div>`
             : A}
         ${power
-            ? b `<div class="row" @click=${() => this._openMoreInfo(power.entity_id)}>
-              <ha-icon icon="mdi:flash"></ha-icon>
-              <div class="name">Power</div>
-              <div>${power.state} ${power.attributes.unit_of_measurement ?? ""}</div>
-              <ha-icon icon="mdi:chevron-right"></ha-icon>
-            </div>`
+            ? b `
+              <div class="shade-row" @click=${() => this._openMoreInfo(power.entity_id)}>
+                <ha-icon icon="mdi:flash"></ha-icon>
+                <span class="entity-name">Power</span>
+                <span class="shade-position">${power.state} ${power.attributes.unit_of_measurement ?? ""}</span>
+                <ha-icon class="chevron" icon="mdi:chevron-right"></ha-icon>
+              </div>`
             : A}
         ${fallback
-            ? b `<div class="hint">Fallback: ${this._name(fallback.entity_id)} = ${fallback.state}</div>`
+            ? b `
+              <div class="shade-row" @click=${() => this._openMoreInfo(fallback.entity_id)}>
+                <ha-icon icon="mdi:thermometer"></ha-icon>
+                <span class="entity-name">${this._name(fallback.entity_id)}</span>
+                <span class="shade-position">${fallback.state}</span>
+                <ha-icon class="chevron" icon="mdi:chevron-right"></ha-icon>
+              </div>`
             : A}
       </section>
     `;
@@ -425,101 +421,148 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
 TechArtRoomCard.styles = i$3 `
     :host {
       display: block;
+      --card-accent: var(--accent-color, #f5a623);
+      --card-radius: 20px;
+      --panel-radius: 16px;
+      --panel-bg: var(--ha-card-background, var(--card-background-color, #1c1c1e));
+      --panel-border: 1px solid color-mix(in srgb, var(--divider-color, #444) 60%, transparent);
+      --panel-gap: 12px;
+      --text-primary: var(--primary-text-color, #e1e1e1);
+      --text-secondary: var(--secondary-text-color, #9e9e9e);
+      font-family: var(--ha-card-header-font-family, inherit);
     }
 
     ha-card {
-      border-radius: 24px;
-      box-shadow: var(--ha-card-box-shadow, 0 10px 30px rgba(0, 0, 0, 0.14));
-      padding: 16px;
-      background: var(--ha-card-background, var(--card-background-color, #fff));
-      color: var(--primary-text-color);
+      border-radius: var(--card-radius);
+      box-shadow: var(--ha-card-box-shadow, 0 2px 8px rgba(0, 0, 0, 0.2));
+      padding: 20px;
+      background: var(--panel-bg);
+      color: var(--text-primary);
+      overflow: hidden;
     }
 
+    /* ── Shell ── */
     .shell {
-      display: grid;
-      gap: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: var(--panel-gap);
     }
 
+    /* ── Header ── */
     .header {
       display: grid;
-      grid-template-columns: 1fr auto 1fr;
+      grid-template-columns: auto 1fr auto;
       align-items: center;
-      border-bottom: 1px solid var(--divider-color);
-      padding: 4px 4px 14px;
-      gap: 8px;
+      padding: 0 0 16px;
+      border-bottom: 1px solid var(--divider-color, #333);
+      gap: 16px;
+      min-height: 48px;
+    }
+
+    .clock {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.15;
     }
 
     .time {
-      font-size: 2rem;
+      font-size: 1.6rem;
       font-weight: 600;
-      line-height: 1.1;
+      letter-spacing: -0.02em;
     }
 
     .date {
-      font-size: 0.98rem;
-      color: var(--secondary-text-color);
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
     }
 
     .title {
-      font-size: 2.2rem;
-      font-weight: 600;
+      font-size: 1.5rem;
+      font-weight: 700;
       text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .weather {
-      justify-self: end;
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 2rem;
-      font-weight: 600;
+      gap: 6px;
+      justify-self: end;
     }
 
     .weather ha-icon {
-      --mdc-icon-size: 40px;
-      color: var(--warning-color, #f5a623);
+      --mdc-icon-size: 28px;
+      color: var(--card-accent);
     }
 
+    .weather-temp {
+      font-size: 1.6rem;
+      font-weight: 700;
+    }
+
+    /* ── Grid ── */
     .grid {
       display: grid;
-      grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr);
-      gap: 12px;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--panel-gap);
     }
 
     .col {
-      display: grid;
-      gap: 12px;
-      align-content: start;
+      display: flex;
+      flex-direction: column;
+      gap: var(--panel-gap);
+      min-width: 0;
     }
 
+    /* ── Panel (sub-card) ── */
     .panel {
-      border-radius: 18px;
-      background: color-mix(in srgb, var(--card-background-color, #fff), var(--primary-background-color, #f5f6f9) 40%);
-      padding: 12px;
-      border: 1px solid color-mix(in srgb, var(--divider-color), transparent 50%);
+      border-radius: var(--panel-radius);
+      background: color-mix(in srgb, var(--card-background-color, #1c1c1e) 85%, var(--primary-background-color, #111) 15%);
+      border: var(--panel-border);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
     }
 
-    .panel h3 {
-      margin: 0 0 8px;
-      font-size: 1.9rem;
-      font-weight: 600;
+    .panel-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: 0.01em;
     }
 
-    .row {
+    /* ── Light rows ── */
+    .light-row {
       display: grid;
-      grid-template-columns: auto 1fr auto auto;
+      grid-template-columns: 24px 1fr auto 24px;
       align-items: center;
       gap: 8px;
-      padding: 8px 0;
-      border-top: 1px solid var(--divider-color);
+      padding: 6px 0;
+      cursor: pointer;
     }
 
-    .row:first-of-type {
-      border-top: 0;
+    .light-row:not(:last-of-type) {
+      border-bottom: 1px solid color-mix(in srgb, var(--divider-color, #333) 50%, transparent);
     }
 
-    .name {
-      font-size: 1.75rem;
+    .light-row ha-icon {
+      --mdc-icon-size: 20px;
+      color: var(--card-accent);
+    }
+
+    .light-row .chevron {
+      --mdc-icon-size: 18px;
+      color: var(--text-secondary);
+    }
+
+    .entity-name {
+      font-size: 0.92rem;
+      font-weight: 500;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -528,119 +571,281 @@ TechArtRoomCard.styles = i$3 `
     .pill {
       border: 0;
       border-radius: 999px;
-      padding: 4px 12px;
-      font-weight: 600;
-      background: var(--accent-color);
-      color: var(--text-primary-color, #fff);
+      padding: 3px 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
       cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .pill.on {
+      background: var(--card-accent);
+      color: #fff;
     }
 
     .pill.off {
-      background: var(--disabled-color);
-      color: var(--primary-text-color);
+      background: color-mix(in srgb, var(--disabled-color, #555) 70%, transparent);
+      color: var(--text-secondary);
     }
 
+    /* ── Brightness / Cover sliders ── */
     .slider-row {
       display: grid;
       grid-template-columns: 1fr auto;
       gap: 10px;
       align-items: center;
-      margin-top: 8px;
+      margin-top: 2px;
+    }
+
+    .slider-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      min-width: 36px;
+      text-align: right;
     }
 
     input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
       width: 100%;
-      accent-color: var(--accent-color);
+      height: 6px;
+      border-radius: 3px;
+      background: color-mix(in srgb, var(--divider-color, #444) 60%, transparent);
+      outline: none;
     }
 
-    .climate-main {
-      display: grid;
-      justify-items: center;
-      gap: 10px;
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--card-accent);
+      cursor: pointer;
+      border: 2px solid var(--panel-bg);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
     }
 
-    .temp {
-      font-size: 3.8rem;
-      font-weight: 700;
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--card-accent);
+      cursor: pointer;
+      border: 2px solid var(--panel-bg);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+
+    /* ── Climate ── */
+    .climate-body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 0;
+    }
+
+    .climate-mode-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      letter-spacing: 0.05em;
+    }
+
+    .climate-temp {
+      font-size: 3.2rem;
+      font-weight: 800;
       line-height: 1;
+      letter-spacing: -0.03em;
     }
 
-    .secondary {
-      color: var(--secondary-text-color);
-      font-size: 1.4rem;
+    .climate-setpoint {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .climate-slider {
+      width: 100%;
+      margin-top: 4px;
     }
 
     .mode-row {
-      display: grid;
-      grid-auto-flow: column;
+      display: flex;
       gap: 6px;
-      margin-top: 10px;
-      width: 100%;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 4px;
     }
 
-    .mode {
-      border-radius: 12px;
+    .mode-btn {
       border: 0;
-      background: color-mix(in srgb, var(--divider-color), transparent 60%);
-      color: var(--primary-text-color);
-      padding: 8px 6px;
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
       cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      background: color-mix(in srgb, var(--divider-color, #444) 50%, transparent);
+      color: var(--text-primary);
     }
 
-    .mode.active {
-      background: var(--accent-color);
+    .mode-btn.active {
+      background: var(--card-accent);
       color: #fff;
     }
 
+    /* ── Media ── */
     .media-row {
       display: grid;
-      grid-template-columns: 52px 1fr auto;
+      grid-template-columns: 48px 1fr auto;
       gap: 10px;
       align-items: center;
+      cursor: pointer;
     }
 
     .thumb {
-      width: 52px;
-      height: 52px;
+      width: 48px;
+      height: 48px;
       border-radius: 10px;
-      background: color-mix(in srgb, var(--accent-color), transparent 70%);
+      background: color-mix(in srgb, var(--card-accent) 30%, var(--panel-bg));
       object-fit: cover;
+      flex-shrink: 0;
     }
 
-    .chipline {
+    .media-info {
+      min-width: 0;
+    }
+
+    .media-title {
+      font-size: 0.92rem;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .media-subtitle {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .media-play {
+      border: 0;
+      background: color-mix(in srgb, var(--divider-color, #444) 50%, transparent);
+      color: var(--text-primary);
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .media-play:hover {
+      background: var(--card-accent);
+      color: #fff;
+    }
+
+    /* ── Sensors ── */
+    .sensor-chips {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 6px;
     }
 
-    .chip {
+    .sensor-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
       border-radius: 999px;
-      padding: 6px 10px;
-      background: color-mix(in srgb, var(--primary-background-color), transparent 30%);
-      font-size: 1.3rem;
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      background: color-mix(in srgb, var(--divider-color, #444) 40%, transparent);
+      color: var(--text-primary);
     }
 
-    .hint {
-      color: var(--secondary-text-color);
-      font-size: 1.2rem;
+    .sensor-chip ha-icon {
+      --mdc-icon-size: 14px;
     }
 
-    @media (max-width: 1000px) {
+    /* ── Shades ── */
+    .shade-row {
+      display: grid;
+      grid-template-columns: 24px auto 1fr 24px;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      cursor: pointer;
+    }
+
+    .shade-row ha-icon {
+      --mdc-icon-size: 20px;
+    }
+
+    .shade-row .chevron {
+      --mdc-icon-size: 18px;
+      color: var(--text-secondary);
+    }
+
+    .shade-position {
+      font-size: 0.92rem;
+      font-weight: 600;
+    }
+
+    .shade-slider-wrap {
+      display: grid;
+      grid-template-columns: 24px 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .shade-slider-wrap ha-icon {
+      --mdc-icon-size: 20px;
+      color: var(--card-accent);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      ha-card {
+        padding: 14px;
+      }
+
       .grid {
         grid-template-columns: 1fr;
       }
 
       .header {
-        grid-template-columns: 1fr;
-        justify-items: start;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
       }
 
       .title {
+        grid-column: 1 / -1;
+        grid-row: 1;
         text-align: left;
+        font-size: 1.25rem;
+      }
+
+      .clock {
+        grid-row: 2;
       }
 
       .weather {
-        justify-self: start;
+        grid-row: 2;
+        justify-self: end;
+      }
+
+      .climate-temp {
+        font-size: 2.6rem;
       }
     }
   `;
@@ -705,7 +910,38 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
             composed: true,
         }));
     }
+    _pick(path, value) {
+        this._emit(path, value ?? "");
+    }
+    _lightEntities() {
+        const raw = this._config?.lights?.entities;
+        if (Array.isArray(raw))
+            return raw;
+        if (typeof raw === "string" && raw.trim())
+            return raw.split(",").map((v) => v.trim()).filter(Boolean);
+        return [];
+    }
+    _setLightEntities(entities) {
+        const updated = { ...(this._config ?? { type: "custom:tech-art-room-card" }) };
+        const existing = updated["lights"];
+        updated["lights"] = { ...(existing ?? {}), entities };
+        this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: updated }, bubbles: true, composed: true }));
+    }
+    _extraEntities() {
+        const raw = this._config?.sensors?.extras;
+        if (Array.isArray(raw))
+            return raw.map((item) => item.entity).filter(Boolean);
+        return [];
+    }
+    _setExtraEntities(entities) {
+        const updated = { ...(this._config ?? { type: "custom:tech-art-room-card" }) };
+        const existing = updated["sensors"];
+        updated["sensors"] = { ...(existing ?? {}), extras: entities.map((e) => ({ entity: e })) };
+        this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: updated }, bubbles: true, composed: true }));
+    }
     render() {
+        const lightEntities = this._lightEntities();
+        const extraEntities = this._extraEntities();
         return b `
       <div class="editor-container">
         <div class="form-row">
@@ -717,23 +953,62 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
           <div class="section-title">Header</div>
           <div class="form-row">
             <label>Weather entity</label>
-            <input .value=${this._value("header.weather_entity")} @input=${(e) => this._emit("header.weather_entity", e.target.value)} />
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${this._value("header.weather_entity")}
+              .includeDomains=${["weather"]}
+              allow-custom-entity
+              @value-changed=${(e) => this._pick("header.weather_entity", e.detail.value)}
+            ></ha-entity-picker>
           </div>
           <div class="form-row">
             <label>Outside temperature entity</label>
-            <input .value=${this._value("header.outdoor_temp_entity")} @input=${(e) => this._emit("header.outdoor_temp_entity", e.target.value)} />
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${this._value("header.outdoor_temp_entity")}
+              .includeDomains=${["sensor"]}
+              allow-custom-entity
+              @value-changed=${(e) => this._pick("header.outdoor_temp_entity", e.detail.value)}
+            ></ha-entity-picker>
           </div>
         </div>
 
         <div class="section">
           <div class="section-title">Lights</div>
           <div class="form-row">
-            <label>Light entities (comma-separated)</label>
-            <input .value=${this._value("lights.entities")} @input=${(e) => this._emit("lights.entities", e.target.value)} />
+            <label>Light entities</label>
+            <div class="light-entities">
+              ${lightEntities.map((entityId, idx) => b `
+                <div class="light-entity-row">
+                  <ha-entity-picker
+                    .hass=${this.hass}
+                    .value=${entityId}
+                    .includeDomains=${["light"]}
+                    allow-custom-entity
+                    @value-changed=${(e) => {
+            const updated = [...lightEntities];
+            updated[idx] = e.detail.value;
+            this._setLightEntities(updated.filter(Boolean));
+        }}
+                  ></ha-entity-picker>
+                  <button class="remove-btn" @click=${() => {
+            const updated = lightEntities.filter((_, i) => i !== idx);
+            this._setLightEntities(updated);
+        }}>Remove</button>
+                </div>
+              `)}
+              <button class="add-btn" @click=${() => this._setLightEntities([...lightEntities, ""])}>+ Add light</button>
+            </div>
           </div>
           <div class="form-row">
-            <label>Brightness entity (optional)</label>
-            <input .value=${this._value("lights.brightness_entity")} @input=${(e) => this._emit("lights.brightness_entity", e.target.value)} />
+            <label>Brightness entity (optional, defaults to first light)</label>
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${this._value("lights.brightness_entity")}
+              .includeDomains=${["light"]}
+              allow-custom-entity
+              @value-changed=${(e) => this._pick("lights.brightness_entity", e.detail.value)}
+            ></ha-entity-picker>
           </div>
         </div>
 
@@ -741,11 +1016,23 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
           <div class="section-title">Climate</div>
           <div class="form-row">
             <label>Climate entity</label>
-            <input .value=${this._value("climate.entity")} @input=${(e) => this._emit("climate.entity", e.target.value)} />
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${this._value("climate.entity")}
+              .includeDomains=${["climate"]}
+              allow-custom-entity
+              @value-changed=${(e) => this._pick("climate.entity", e.detail.value)}
+            ></ha-entity-picker>
           </div>
           <div class="form-row">
-            <label>Fallback entity (temperature sensor)</label>
-            <input .value=${this._value("climate.fallback_entity")} @input=${(e) => this._emit("climate.fallback_entity", e.target.value)} />
+            <label>Fallback temperature sensor (when no climate entity)</label>
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${this._value("climate.fallback_entity")}
+              .includeDomains=${["sensor"]}
+              allow-custom-entity
+              @value-changed=${(e) => this._pick("climate.fallback_entity", e.detail.value)}
+            ></ha-entity-picker>
           </div>
         </div>
 
@@ -753,7 +1040,13 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
           <div class="section-title">Media</div>
           <div class="form-row">
             <label>Media player entity</label>
-            <input .value=${this._value("media.entity")} @input=${(e) => this._emit("media.entity", e.target.value)} />
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${this._value("media.entity")}
+              .includeDomains=${["media_player"]}
+              allow-custom-entity
+              @value-changed=${(e) => this._pick("media.entity", e.detail.value)}
+            ></ha-entity-picker>
           </div>
         </div>
 
@@ -761,19 +1054,58 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
           <div class="section-title">Sensors</div>
           <div class="form-row">
             <label>Air quality entity</label>
-            <input .value=${this._value("sensors.air_quality_entity")} @input=${(e) => this._emit("sensors.air_quality_entity", e.target.value)} />
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${this._value("sensors.air_quality_entity")}
+              .includeDomains=${["sensor"]}
+              allow-custom-entity
+              @value-changed=${(e) => this._pick("sensors.air_quality_entity", e.detail.value)}
+            ></ha-entity-picker>
           </div>
           <div class="form-row">
             <label>PM2.5 entity</label>
-            <input .value=${this._value("sensors.pm25_entity")} @input=${(e) => this._emit("sensors.pm25_entity", e.target.value)} />
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${this._value("sensors.pm25_entity")}
+              .includeDomains=${["sensor"]}
+              allow-custom-entity
+              @value-changed=${(e) => this._pick("sensors.pm25_entity", e.detail.value)}
+            ></ha-entity-picker>
           </div>
           <div class="form-row">
             <label>Power entity</label>
-            <input .value=${this._value("sensors.power_entity")} @input=${(e) => this._emit("sensors.power_entity", e.target.value)} />
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${this._value("sensors.power_entity")}
+              .includeDomains=${["sensor"]}
+              allow-custom-entity
+              @value-changed=${(e) => this._pick("sensors.power_entity", e.detail.value)}
+            ></ha-entity-picker>
           </div>
           <div class="form-row">
-            <label>Extra sensors (comma-separated entity IDs)</label>
-            <input .value=${this._value("sensors.extras")} @input=${(e) => this._emit("sensors.extras", e.target.value)} />
+            <label>Extra sensor entities</label>
+            <div class="light-entities">
+              ${extraEntities.map((entityId, idx) => b `
+                <div class="light-entity-row">
+                  <ha-entity-picker
+                    .hass=${this.hass}
+                    .value=${entityId}
+                    .includeDomains=${["sensor", "binary_sensor"]}
+                    allow-custom-entity
+                    @value-changed=${(e) => {
+            const updated = [...extraEntities];
+            updated[idx] = e.detail.value;
+            this._setExtraEntities(updated.filter(Boolean));
+        }}
+                  ></ha-entity-picker>
+                  <button class="remove-btn" @click=${() => {
+            const updated = extraEntities.filter((_, i) => i !== idx);
+            this._setExtraEntities(updated);
+        }}>Remove</button>
+                </div>
+              `)}
+              <button class="add-btn" @click=${() => this._setExtraEntities([...extraEntities, ""])}>+ Add sensor</button>
+            </div>
           </div>
         </div>
 
@@ -781,19 +1113,42 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
           <div class="section-title">Shades</div>
           <div class="form-row">
             <label>Shade entity</label>
-            <input .value=${this._value("shades.entity")} @input=${(e) => this._emit("shades.entity", e.target.value)} />
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${this._value("shades.entity")}
+              .includeDomains=${["cover"]}
+              allow-custom-entity
+              @value-changed=${(e) => this._pick("shades.entity", e.detail.value)}
+            ></ha-entity-picker>
           </div>
           <div class="form-row">
             <label>Secondary shade entity</label>
-            <input .value=${this._value("shades.secondary_entity")} @input=${(e) => this._emit("shades.secondary_entity", e.target.value)} />
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${this._value("shades.secondary_entity")}
+              .includeDomains=${["cover"]}
+              allow-custom-entity
+              @value-changed=${(e) => this._pick("shades.secondary_entity", e.detail.value)}
+            ></ha-entity-picker>
           </div>
           <div class="form-row">
             <label>Shade power entity</label>
-            <input .value=${this._value("shades.power_entity")} @input=${(e) => this._emit("shades.power_entity", e.target.value)} />
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${this._value("shades.power_entity")}
+              .includeDomains=${["sensor"]}
+              allow-custom-entity
+              @value-changed=${(e) => this._pick("shades.power_entity", e.detail.value)}
+            ></ha-entity-picker>
           </div>
           <div class="form-row">
             <label>Fallback entity</label>
-            <input .value=${this._value("shades.fallback_entity")} @input=${(e) => this._emit("shades.fallback_entity", e.target.value)} />
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${this._value("shades.fallback_entity")}
+              allow-custom-entity
+              @value-changed=${(e) => this._pick("shades.fallback_entity", e.detail.value)}
+            ></ha-entity-picker>
           </div>
         </div>
       </div>
@@ -833,6 +1188,10 @@ TechArtRoomCardEditor.styles = i$3 `
       color: var(--secondary-text-color);
       font-weight: 400;
     }
+    ha-entity-picker {
+      width: 100%;
+      display: block;
+    }
     input {
       background: var(--card-background-color);
       border: 1px solid var(--divider-color);
@@ -846,6 +1205,38 @@ TechArtRoomCardEditor.styles = i$3 `
     input:focus {
       outline: none;
       border-color: var(--primary-color);
+    }
+    .light-entities {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .light-entity-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px;
+      align-items: center;
+    }
+    .remove-btn {
+      border: 0;
+      background: color-mix(in srgb, var(--error-color, #f44336) 15%, transparent);
+      color: var(--error-color, #f44336);
+      border-radius: 4px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .add-btn {
+      border: 1px dashed var(--divider-color);
+      background: transparent;
+      color: var(--primary-color);
+      border-radius: 4px;
+      padding: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      width: 100%;
+      margin-top: 4px;
     }
   `;
 __decorate([
