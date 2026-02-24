@@ -72,7 +72,7 @@ const t=t=>(e,o)=>{ void 0!==o?o.addInitializer(()=>{customElements.define(t,e);
  * SPDX-License-Identifier: BSD-3-Clause
  */function r(r){return n({...r,state:true,attribute:false})}
 
-const CARD_VERSION = "0.1.4";
+const CARD_VERSION = "0.1.5";
 let TechArtRoomCard = class TechArtRoomCard extends i {
     setConfig(config) {
         if (!config?.type) {
@@ -665,7 +665,21 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
         return val ?? fallback;
     }
     _emit(path, value) {
-        const updated = { ...(this._config ?? { type: "custom:tech-art-room-card" }) };
+        // Deep clone config to avoid frozen object issues from Home Assistant
+        const deepClone = (obj) => {
+            if (obj === null || typeof obj !== "object")
+                return obj;
+            if (Array.isArray(obj))
+                return obj.map(deepClone);
+            const cloned = {};
+            for (const key in obj) {
+                if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                    cloned[key] = deepClone(obj[key]);
+                }
+            }
+            return cloned;
+        };
+        const updated = deepClone(this._config ?? { type: "custom:tech-art-room-card" });
         const keys = path.split(".");
         let ptr = updated;
         keys.forEach((k, i) => {
