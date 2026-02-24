@@ -1,0 +1,35 @@
+{
+  "name": "tech-art-room-card",
+  "version": "0.1.0",
+  "description": "A Home Assistant Room Card for Lovelace",
+  "main": "dist/tech-art-room-card.js",
+  "scripts": {
+    "build": "rollup -c rollup.config.mjs",
+    "watch": "rollup -c rollup.config.mjs --watch",
+    "lint": "eslint src",
+    "test": "echo \"No tests configured\" && exit 0"
+  },
+  "keywords": [
+    "home-assistant",
+    "lovelace",
+    "custom-card",
+    "room-card"
+  ],
+  "author": "techartdev",
+  "license": "MIT",
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^10.0.0",
+    "rollup": "^4.18.0",
+    "rollup-plugin-serve": "^2.0.2",
+    "tslib": "^2.6.3",
+    "typescript": "^5.5.2",
+    "typescript-eslint": "^8.56.1"
+  },
+  "dependencies": {
+    "lit": "^3.1.4"
+  }
+}
