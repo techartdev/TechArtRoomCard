@@ -1,6 +1,6 @@
 {
   "name": "tech-art-room-card",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A Home Assistant Room Card for Lovelace",
   "main": "dist/tech-art-room-card.js",
   "scripts": {
