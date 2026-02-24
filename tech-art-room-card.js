@@ -72,7 +72,7 @@ const t=t=>(e,o)=>{ void 0!==o?o.addInitializer(()=>{customElements.define(t,e);
  * SPDX-License-Identifier: BSD-3-Clause
  */function r(r){return n({...r,state:true,attribute:false})}
 
-const CARD_VERSION = "0.1.5";
+const CARD_VERSION = "0.1.6";
 let TechArtRoomCard = class TechArtRoomCard extends i {
     setConfig(config) {
         if (!config?.type) {
@@ -334,7 +334,11 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         const aq = this._e(cfg?.air_quality_entity);
         const pm = this._e(cfg?.pm25_entity);
         const power = this._e(cfg?.power_entity);
-        const extras = (cfg?.extras ?? []).filter((item) => this._e(item.entity));
+        // Handle extras defensively - ensure it's an array of EntityConfig objects
+        let extras = [];
+        if (Array.isArray(cfg?.extras)) {
+            extras = cfg.extras.filter((item) => item && typeof item === "object" && item.entity && this._e(item.entity));
+        }
         if (!aq && !pm && !power && !extras.length)
             return A;
         return b `
@@ -675,8 +679,17 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
             const key = keys[i];
             const isLast = i === keys.length - 1;
             if (isLast) {
-                // Set the final value
-                current[key] = value;
+                // Parse special fields that need array format
+                if (path === "sensors.extras") {
+                    // Parse comma-separated entity IDs into array of EntityConfig objects
+                    current[key] = value.split(",")
+                        .map((v) => v.trim())
+                        .filter((v) => v)
+                        .map((entityId) => ({ entity: entityId }));
+                }
+                else {
+                    current[key] = value;
+                }
             }
             else {
                 // Get existing nested object if any, and create a new one to avoid frozen objects
