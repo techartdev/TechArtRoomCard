@@ -755,29 +755,30 @@ export class TechArtRoomCardEditor extends LitElement {
   }
 
   private _emit(path: string, value: string) {
-    // Deep clone config to avoid frozen object issues from Home Assistant
-    const deepClone = (obj: unknown): unknown => {
-      if (obj === null || typeof obj !== "object") return obj;
-      if (Array.isArray(obj)) return obj.map(deepClone);
-      const cloned: Record<string, unknown> = {};
-      for (const key in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-          cloned[key] = deepClone((obj as Record<string, unknown>)[key]);
-        }
-      }
-      return cloned;
-    };
-
-    const updated = deepClone(this._config ?? { type: "custom:tech-art-room-card" }) as Record<string, unknown>;
+    // Build updated config by creating new objects at each nested level
+    // This avoids frozen object issues from Home Assistant
     const keys = path.split(".");
-    let ptr: Record<string, unknown> = updated;
-    keys.forEach((k, i) => {
-      if (i === keys.length - 1) ptr[k] = value;
-      else {
-        ptr[k] = (ptr[k] as Record<string, unknown> | undefined) ?? {};
-        ptr = ptr[k] as Record<string, unknown>;
+    
+    // Start with shallow clone of base config
+    const updated: Record<string, unknown> = { ...(this._config ?? { type: "custom:tech-art-room-card" }) };
+    
+    let current: Record<string, unknown> = updated;
+    
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      const isLast = i === keys.length - 1;
+      
+      if (isLast) {
+        // Set the final value
+        current[key] = value;
+      } else {
+        // Get existing nested object if any, and create a new one to avoid frozen objects
+        const existing = current[key] as Record<string, unknown> | undefined;
+        const newObj: Record<string, unknown> = existing ? { ...existing } : {};
+        current[key] = newObj;
+        current = newObj;
       }
-    });
+    }
 
     this.dispatchEvent(
       new CustomEvent("config-changed", {

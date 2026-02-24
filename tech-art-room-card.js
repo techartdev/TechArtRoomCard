@@ -665,31 +665,27 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
         return val ?? fallback;
     }
     _emit(path, value) {
-        // Deep clone config to avoid frozen object issues from Home Assistant
-        const deepClone = (obj) => {
-            if (obj === null || typeof obj !== "object")
-                return obj;
-            if (Array.isArray(obj))
-                return obj.map(deepClone);
-            const cloned = {};
-            for (const key in obj) {
-                if (Object.prototype.hasOwnProperty.call(obj, key)) {
-                    cloned[key] = deepClone(obj[key]);
-                }
-            }
-            return cloned;
-        };
-        const updated = deepClone(this._config ?? { type: "custom:tech-art-room-card" });
+        // Build updated config by creating new objects at each nested level
+        // This avoids frozen object issues from Home Assistant
         const keys = path.split(".");
-        let ptr = updated;
-        keys.forEach((k, i) => {
-            if (i === keys.length - 1)
-                ptr[k] = value;
-            else {
-                ptr[k] = ptr[k] ?? {};
-                ptr = ptr[k];
+        // Start with shallow clone of base config
+        const updated = { ...(this._config ?? { type: "custom:tech-art-room-card" }) };
+        let current = updated;
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            const isLast = i === keys.length - 1;
+            if (isLast) {
+                // Set the final value
+                current[key] = value;
             }
-        });
+            else {
+                // Get existing nested object if any, and create a new one to avoid frozen objects
+                const existing = current[key];
+                const newObj = existing ? { ...existing } : {};
+                current[key] = newObj;
+                current = newObj;
+            }
+        }
         this.dispatchEvent(new CustomEvent("config-changed", {
             detail: { config: updated },
             bubbles: true,
