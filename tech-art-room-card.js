@@ -72,7 +72,7 @@ const t=t=>(e,o)=>{ void 0!==o?o.addInitializer(()=>{customElements.define(t,e);
  * SPDX-License-Identifier: BSD-3-Clause
  */function r(r){return n({...r,state:true,attribute:false})}
 
-const CARD_VERSION = "0.1.11";
+const CARD_VERSION = "0.1.12";
 let TechArtRoomCard = class TechArtRoomCard extends i {
     setConfig(config) {
         if (!config?.type) {
@@ -861,6 +861,11 @@ TechArtRoomCard = __decorate([
     t("tech-art-room-card")
 ], TechArtRoomCard);
 let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
+    constructor() {
+        super(...arguments);
+        this._pendingLights = 0;
+        this._pendingExtras = 0;
+    }
     setConfig(config) {
         this._config = config;
     }
@@ -921,9 +926,9 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
         return [];
     }
     _setLightEntities(entities) {
-        const updated = { ...(this._config ?? { type: "custom:tech-art-room-card" }) };
+        const updated = JSON.parse(JSON.stringify(this._config ?? { type: "custom:tech-art-room-card" }));
         const existing = updated["lights"];
-        updated["lights"] = { ...(existing ?? {}), entities };
+        updated["lights"] = { ...(existing ?? {}), entities: entities.filter(Boolean) };
         this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: updated }, bubbles: true, composed: true }));
     }
     _extraEntities() {
@@ -933,9 +938,9 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
         return [];
     }
     _setExtraEntities(entities) {
-        const updated = { ...(this._config ?? { type: "custom:tech-art-room-card" }) };
+        const updated = JSON.parse(JSON.stringify(this._config ?? { type: "custom:tech-art-room-card" }));
         const existing = updated["sensors"];
-        updated["sensors"] = { ...(existing ?? {}), extras: entities.map((e) => ({ entity: e })) };
+        updated["sensors"] = { ...(existing ?? {}), extras: entities.filter(Boolean).map((e) => ({ entity: e })) };
         this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: updated }, bubbles: true, composed: true }));
     }
     render() {
@@ -983,8 +988,8 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
                     .selector=${{ entity: { domain: "light" } }}
                     @value-changed=${(e) => {
             const updated = [...lightEntities];
-            updated[idx] = e.detail.value;
-            this._setLightEntities(updated.filter(Boolean));
+            updated[idx] = e.detail.value ?? "";
+            this._setLightEntities(updated);
         }}
                   ></ha-selector>
                   <button class="remove-btn" @click=${() => {
@@ -993,7 +998,24 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
         }}>Remove</button>
                 </div>
               `)}
-              <button class="add-btn" @click=${() => this._setLightEntities([...lightEntities, ""])}>+ Add light</button>
+              ${Array.from({ length: this._pendingLights }).map((_) => b `
+                <div class="light-entity-row">
+                  <ha-selector
+                    .hass=${this.hass}
+                    .value=${""}
+                    .selector=${{ entity: { domain: "light" } }}
+                    @value-changed=${(e) => {
+            const val = e.detail.value ?? "";
+            if (val) {
+                this._pendingLights = Math.max(0, this._pendingLights - 1);
+                this._setLightEntities([...lightEntities, val]);
+            }
+        }}
+                  ></ha-selector>
+                  <button class="remove-btn" @click=${() => { this._pendingLights = Math.max(0, this._pendingLights - 1); }}>Remove</button>
+                </div>
+              `)}
+              <button class="add-btn" @click=${() => { this._pendingLights += 1; }}>+ Add light</button>
             </div>
           </div>
           <div class="form-row">
@@ -1082,8 +1104,8 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
                     .selector=${{ entity: { domain: ["sensor", "binary_sensor"] } }}
                     @value-changed=${(e) => {
             const updated = [...extraEntities];
-            updated[idx] = e.detail.value;
-            this._setExtraEntities(updated.filter(Boolean));
+            updated[idx] = e.detail.value ?? "";
+            this._setExtraEntities(updated);
         }}
                   ></ha-selector>
                   <button class="remove-btn" @click=${() => {
@@ -1092,7 +1114,24 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
         }}>Remove</button>
                 </div>
               `)}
-              <button class="add-btn" @click=${() => this._setExtraEntities([...extraEntities, ""])}>+ Add sensor</button>
+              ${Array.from({ length: this._pendingExtras }).map((_) => b `
+                <div class="light-entity-row">
+                  <ha-selector
+                    .hass=${this.hass}
+                    .value=${""}
+                    .selector=${{ entity: { domain: ["sensor", "binary_sensor"] } }}
+                    @value-changed=${(e) => {
+            const val = e.detail.value ?? "";
+            if (val) {
+                this._pendingExtras = Math.max(0, this._pendingExtras - 1);
+                this._setExtraEntities([...extraEntities, val]);
+            }
+        }}
+                  ></ha-selector>
+                  <button class="remove-btn" @click=${() => { this._pendingExtras = Math.max(0, this._pendingExtras - 1); }}>Remove</button>
+                </div>
+              `)}
+              <button class="add-btn" @click=${() => { this._pendingExtras += 1; }}>+ Add sensor</button>
             </div>
           </div>
         </div>
@@ -1230,6 +1269,12 @@ __decorate([
 __decorate([
     r()
 ], TechArtRoomCardEditor.prototype, "_config", void 0);
+__decorate([
+    r()
+], TechArtRoomCardEditor.prototype, "_pendingLights", void 0);
+__decorate([
+    r()
+], TechArtRoomCardEditor.prototype, "_pendingExtras", void 0);
 TechArtRoomCardEditor = __decorate([
     t("tech-art-room-card-editor")
 ], TechArtRoomCardEditor);

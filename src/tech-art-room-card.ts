@@ -892,6 +892,8 @@ export class TechArtRoomCard extends LitElement {
 export class TechArtRoomCardEditor extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @state() private _config!: RoomCardConfig;
+  @state() private _pendingLights = 0;
+  @state() private _pendingExtras = 0;
 
   static styles = css`
     .editor-container {
@@ -1034,7 +1036,7 @@ export class TechArtRoomCardEditor extends LitElement {
     );
   }
 
-  private _pick(path: string, value: string) {
+  private _pick(path: string, value: string | null) {
     this._emit(path, value ?? "");
   }
 
@@ -1046,9 +1048,11 @@ export class TechArtRoomCardEditor extends LitElement {
   }
 
   private _setLightEntities(entities: string[]) {
-    const updated: Record<string, unknown> = { ...(this._config ?? { type: "custom:tech-art-room-card" }) };
+    const updated: Record<string, unknown> = JSON.parse(
+      JSON.stringify(this._config ?? { type: "custom:tech-art-room-card" })
+    );
     const existing = updated["lights"] as Record<string, unknown> | undefined;
-    updated["lights"] = { ...(existing ?? {}), entities };
+    updated["lights"] = { ...(existing ?? {}), entities: entities.filter(Boolean) };
     this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: updated }, bubbles: true, composed: true }));
   }
 
@@ -1059,9 +1063,11 @@ export class TechArtRoomCardEditor extends LitElement {
   }
 
   private _setExtraEntities(entities: string[]) {
-    const updated: Record<string, unknown> = { ...(this._config ?? { type: "custom:tech-art-room-card" }) };
+    const updated: Record<string, unknown> = JSON.parse(
+      JSON.stringify(this._config ?? { type: "custom:tech-art-room-card" })
+    );
     const existing = updated["sensors"] as Record<string, unknown> | undefined;
-    updated["sensors"] = { ...(existing ?? {}), extras: entities.map((e) => ({ entity: e })) };
+    updated["sensors"] = { ...(existing ?? {}), extras: entities.filter(Boolean).map((e) => ({ entity: e })) };
     this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: updated }, bubbles: true, composed: true }));
   }
 
@@ -1111,8 +1117,8 @@ export class TechArtRoomCardEditor extends LitElement {
                     .selector=${{ entity: { domain: "light" } }}
                     @value-changed=${(e: CustomEvent) => {
                       const updated = [...lightEntities];
-                      updated[idx] = e.detail.value;
-                      this._setLightEntities(updated.filter(Boolean));
+                      updated[idx] = e.detail.value ?? "";
+                      this._setLightEntities(updated);
                     }}
                   ></ha-selector>
                   <button class="remove-btn" @click=${() => {
@@ -1121,7 +1127,24 @@ export class TechArtRoomCardEditor extends LitElement {
                   }}>Remove</button>
                 </div>
               `)}
-              <button class="add-btn" @click=${() => this._setLightEntities([...lightEntities, ""])}>+ Add light</button>
+              ${Array.from({ length: this._pendingLights }).map((_) => html`
+                <div class="light-entity-row">
+                  <ha-selector
+                    .hass=${this.hass}
+                    .value=${""}
+                    .selector=${{ entity: { domain: "light" } }}
+                    @value-changed=${(e: CustomEvent) => {
+                      const val: string = e.detail.value ?? "";
+                      if (val) {
+                        this._pendingLights = Math.max(0, this._pendingLights - 1);
+                        this._setLightEntities([...lightEntities, val]);
+                      }
+                    }}
+                  ></ha-selector>
+                  <button class="remove-btn" @click=${() => { this._pendingLights = Math.max(0, this._pendingLights - 1); }}>Remove</button>
+                </div>
+              `)}
+              <button class="add-btn" @click=${() => { this._pendingLights += 1; }}>+ Add light</button>
             </div>
           </div>
           <div class="form-row">
@@ -1210,8 +1233,8 @@ export class TechArtRoomCardEditor extends LitElement {
                     .selector=${{ entity: { domain: ["sensor", "binary_sensor"] } }}
                     @value-changed=${(e: CustomEvent) => {
                       const updated = [...extraEntities];
-                      updated[idx] = e.detail.value;
-                      this._setExtraEntities(updated.filter(Boolean));
+                      updated[idx] = e.detail.value ?? "";
+                      this._setExtraEntities(updated);
                     }}
                   ></ha-selector>
                   <button class="remove-btn" @click=${() => {
@@ -1220,7 +1243,24 @@ export class TechArtRoomCardEditor extends LitElement {
                   }}>Remove</button>
                 </div>
               `)}
-              <button class="add-btn" @click=${() => this._setExtraEntities([...extraEntities, ""])}>+ Add sensor</button>
+              ${Array.from({ length: this._pendingExtras }).map((_) => html`
+                <div class="light-entity-row">
+                  <ha-selector
+                    .hass=${this.hass}
+                    .value=${""}
+                    .selector=${{ entity: { domain: ["sensor", "binary_sensor"] } }}
+                    @value-changed=${(e: CustomEvent) => {
+                      const val: string = e.detail.value ?? "";
+                      if (val) {
+                        this._pendingExtras = Math.max(0, this._pendingExtras - 1);
+                        this._setExtraEntities([...extraEntities, val]);
+                      }
+                    }}
+                  ></ha-selector>
+                  <button class="remove-btn" @click=${() => { this._pendingExtras = Math.max(0, this._pendingExtras - 1); }}>Remove</button>
+                </div>
+              `)}
+              <button class="add-btn" @click=${() => { this._pendingExtras += 1; }}>+ Add sensor</button>
             </div>
           </div>
         </div>
