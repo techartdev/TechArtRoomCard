@@ -1,10 +1,10 @@
 {
   "name": "tech-art-room-card",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A Home Assistant Room Card for Lovelace",
   "main": "dist/tech-art-room-card.js",
   "scripts": {
-    "build": "rollup -c rollup.config.mjs",
+    "build": "rollup -c rollup.config.mjs && node scripts/version-artifact.mjs",
     "watch": "rollup -c rollup.config.mjs --watch",
     "lint": "eslint src",
     "test": "echo \"No tests configured\" && exit 0"
