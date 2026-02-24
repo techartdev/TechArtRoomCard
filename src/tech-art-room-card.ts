@@ -714,7 +714,8 @@ export class TechArtRoomCard extends LitElement {
 
     const fallbackSensor = this._e(this._config.climate?.fallback_entity);
     const acTemp = (climate.attributes.current_temperature as number | undefined) ?? Number(climate.state) ?? 0;
-    const currentTemp = fallbackSensor ? Number(fallbackSensor.state) : acTemp;
+    const parsedFallback = fallbackSensor ? Number(fallbackSensor.state) : NaN;
+    const currentTemp = Number.isFinite(parsedFallback) ? parsedFallback : acTemp;
     const target = (climate.attributes.temperature as number | undefined) ?? acTemp;
     const modes = (climate.attributes.hvac_modes as string[] | undefined) ?? [];
     const active = climate.state;
@@ -993,23 +994,22 @@ export class TechArtRoomCardEditor extends LitElement {
   }
 
   private _emit(path: string, value: string) {
-    // Build updated config by creating new objects at each nested level
-    // This avoids frozen object issues from Home Assistant
+    // Deep-clone the entire config via JSON to fully unfreeze every nested object.
+    // HA freezes the config tree deeply, so shallow spreads still leave inner
+    // objects frozen and cause "Cannot assign to read only property" errors.
+    const updated: Record<string, unknown> = JSON.parse(
+      JSON.stringify(this._config ?? { type: "custom:tech-art-room-card" })
+    );
+
     const keys = path.split(".");
-    
-    // Start with shallow clone of base config
-    const updated: Record<string, unknown> = { ...(this._config ?? { type: "custom:tech-art-room-card" }) };
-    
     let current: Record<string, unknown> = updated;
-    
+
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i];
       const isLast = i === keys.length - 1;
-      
+
       if (isLast) {
-        // Parse special fields that need array format
         if (path === "sensors.extras") {
-          // Parse comma-separated entity IDs into array of EntityConfig objects
           current[key] = value.split(",")
             .map((v) => v.trim())
             .filter((v) => v)
@@ -1018,11 +1018,10 @@ export class TechArtRoomCardEditor extends LitElement {
           current[key] = value;
         }
       } else {
-        // Get existing nested object if any, and create a new one to avoid frozen objects
-        const existing = current[key] as Record<string, unknown> | undefined;
-        const newObj: Record<string, unknown> = existing ? { ...existing } : {};
-        current[key] = newObj;
-        current = newObj;
+        if (current[key] === null || typeof current[key] !== "object") {
+          current[key] = {};
+        }
+        current = current[key] as Record<string, unknown>;
       }
     }
 
