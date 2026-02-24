@@ -1,66 +1,77 @@
 # TechArtRoomCard
-A Home Assistant Room Card
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+A dynamic Home Assistant room cockpit card with a native HA look and configurable sections.
 
-A custom Lovelace card for Home Assistant that displays a room summary with entities and their states.
+## Highlights
 
-## Features
+- 2-column room hub layout (header, lights, climate, media, sensors/power, shades)
+- Dynamic section rendering: hides panels or rows when configured entities are missing/unavailable
+- Climate fallback support (show any alternate entity when no HVAC entity is wired)
+- Built-in native-style card editor with Home Assistant entity autocomplete pickers
+- Native-style rounded surfaces, spacing, dividers, and accent usage
 
-- Display a room title with an optional icon
-- List entities and their current states
-- Compatible with [HACS](https://hacs.xyz/)
+## HACS repository type (important)
+
+Use **Dashboard** when adding this repository in HACS.
+
+> Do **not** use `Template` for this repo; this is a frontend dashboard card.
 
 ## Installation
 
 ### HACS (Recommended)
 
-1. Open HACS in your Home Assistant instance.
-2. Go to **Frontend** → click the three-dot menu → **Custom repositories**.
-3. Add `https://github.com/techartdev/TechArtRoomCard` with category **Lovelace**.
-4. Search for **TechArt Room Card** and install it.
-5. Reload your browser.
+1. Open HACS in Home Assistant.
+2. Go to **Dashboard** and open the custom repositories dialog.
+3. Add `https://github.com/techartdev/TechArtRoomCard` with type **Dashboard**.
+4. Install **TechArt Room Card**.
+5. Reload browser.
 
 ### Manual
 
-1. Download `tech-art-room-card.js` from the [latest release](https://github.com/techartdev/TechArtRoomCard/releases/latest).
-2. Place the file in your `config/www` folder.
-3. Add the resource in Home Assistant:
-   - Go to **Settings** → **Dashboards** → **Resources**.
-   - Click **Add resource** and enter `/local/tech-art-room-card.js` with type **JavaScript module**.
+1. Download `tech-art-room-card.js` from the latest release.
+2. Place file in `config/www`.
+3. Add resource `/local/tech-art-room-card.js` as JavaScript module.
 
-## Usage
-
-Add the card to your Lovelace dashboard:
+## Example configuration
 
 ```yaml
 type: custom:tech-art-room-card
 title: Living Room
-icon: mdi:sofa
-entities:
-  - light.living_room
-  - climate.living_room
-  - sensor.living_room_temperature
+header:
+  show_clock: true
+  show_weather: true
+  weather_entity: weather.home
+  outdoor_temp_entity: sensor.outdoor_temperature
+lights:
+  entities:
+    - light.living_room_lamp
+    - light.living_room_ceiling
+  brightness_entity: light.living_room_lights
+climate:
+  entity: climate.living_room
+  fallback_entity: sensor.living_room_comfort_index
+media:
+  entity: media_player.living_room_tv
+sensors:
+  air_quality_entity: sensor.living_room_air_quality
+  pm25_entity: sensor.living_room_pm25
+  power_entity: sensor.living_room_power
+shades:
+  entity: cover.living_room_shade
+  secondary_entity: cover.living_room_shade_right
+  power_entity: sensor.living_room_shade_power
 ```
 
-## Configuration
+## Configuration notes
 
-| Option             | Type     | Default | Description                          |
-|--------------------|----------|---------|--------------------------------------|
-| `title`            | `string` | —       | Room name displayed in the header    |
-| `icon`             | `string` | —       | Material Design icon (e.g. `mdi:sofa`) |
-| `entities`         | `list`   | `[]`    | List of entity IDs to display        |
-| `background_color` | `string` | —       | Optional CSS background color        |
+- If `climate.entity` is absent/unavailable and `climate.fallback_entity` exists, fallback is shown instead of HVAC controls.
+- Lights/media/sensors/shades panels are hidden automatically when configured entities are missing.
+- Use the native-style editor fields with entity autocomplete for common mappings (title, weather/temp, lights, climate, media, sensors, shades).
 
 ## Development
 
 ```bash
 npm install
-npm run build   # Build once
-npm run watch   # Build and watch for changes
-npm run lint    # Lint the TypeScript source
+npm run lint
+npm run build
 ```
-
-## License
-
-MIT

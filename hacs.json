@@ -1,4 +1,7 @@
 {
   "name": "TechArt Room Card",
-  "render_readme": true
+  "render_readme": true,
+  "filename": "tech-art-room-card.js",
+  "content_in_root": true,
+  "homeassistant": "2024.1.0"
 }
