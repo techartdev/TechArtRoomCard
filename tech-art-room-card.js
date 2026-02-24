@@ -72,7 +72,7 @@ const t=t=>(e,o)=>{ void 0!==o?o.addInitializer(()=>{customElements.define(t,e);
  * SPDX-License-Identifier: BSD-3-Clause
  */function r(r){return n({...r,state:true,attribute:false})}
 
-const CARD_VERSION = "0.1.14";
+const CARD_VERSION = "0.1.15";
 let TechArtRoomCard = class TechArtRoomCard extends i {
     setConfig(config) {
         if (!config?.type) {
@@ -108,6 +108,7 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
             media: config.media,
             sensors: config.sensors,
             shades: config.shades,
+            footer: config.footer,
         };
     }
     static getStubConfig() {
@@ -173,6 +174,62 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
             entity_id: entityId,
             hvac_mode: mode,
         });
+    }
+    _footerAction(btn) {
+        const entity = this._e(btn.entity);
+        if (!entity)
+            return;
+        const domain = btn.entity.split(".")[0];
+        const toggleDomains = ["switch", "light", "fan", "input_boolean", "automation", "script"];
+        if (toggleDomains.includes(domain)) {
+            this.hass.callService(domain, "toggle", { entity_id: btn.entity });
+        }
+        else {
+            this._openMoreInfo(btn.entity);
+        }
+    }
+    _renderFooter() {
+        const buttons = this._config.footer;
+        if (!buttons?.length)
+            return A;
+        return b `
+      <div class="footer-bar">
+        ${buttons.map((btn) => {
+            const entity = this._e(btn.entity);
+            const isOn = entity?.state === "on" || entity?.state === "playing" || entity?.state === "open";
+            const domain = btn.entity.split(".")[0];
+            const toggleDomains = ["switch", "light", "fan", "input_boolean", "automation", "script"];
+            const isToggle = toggleDomains.includes(domain);
+            const icon = isToggle && !isOn && btn.off_icon ? btn.off_icon : (btn.icon ?? this._defaultIcon(btn.entity));
+            return b `
+            <button
+              class="footer-btn ${isOn ? "is-on" : ""}"
+              @click=${() => this._footerAction(btn)}
+              title=${btn.text ?? btn.entity}
+            >
+              <ha-icon icon=${icon}></ha-icon>
+              ${btn.text ? b `<span class="footer-btn-text">${btn.text}</span>` : A}
+            </button>
+          `;
+        })}
+      </div>
+    `;
+    }
+    _defaultIcon(entityId) {
+        const domain = entityId.split(".")[0];
+        const map = {
+            light: "mdi:lightbulb",
+            switch: "mdi:toggle-switch",
+            media_player: "mdi:play-circle",
+            climate: "mdi:thermometer",
+            cover: "mdi:window-shutter",
+            fan: "mdi:fan",
+            scene: "mdi:palette",
+            script: "mdi:script-text",
+            automation: "mdi:robot",
+            input_boolean: "mdi:checkbox-marked-circle",
+        };
+        return map[domain] ?? "mdi:gesture-tap";
     }
     _renderHeader() {
         const cfg = this._config.header ?? {};
@@ -416,6 +473,7 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
             <div class="col">${this._renderClimate()} ${this._renderShades()}</div>
           </div>
         </div>
+        ${this._renderFooter()}
       </ha-card>
     `;
     }
@@ -815,6 +873,59 @@ TechArtRoomCard.styles = i$3 `
       color: var(--card-accent);
     }
 
+    /* ── Footer ── */
+    .footer-bar {
+      display: flex;
+      width: 100%;
+      border-top: 1px solid var(--divider-color, rgba(0,0,0,0.12));
+      margin-top: 12px;
+      overflow: hidden;
+      border-radius: 0 0 var(--ha-card-border-radius, 12px) var(--ha-card-border-radius, 12px);
+    }
+
+    .footer-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 10px 4px;
+      border: none;
+      background: var(--card-background-color, #fff);
+      color: var(--primary-text-color);
+      cursor: pointer;
+      font-size: 0.72rem;
+      font-weight: 500;
+      transition: background 0.15s;
+      border-right: 1px solid var(--divider-color, rgba(0,0,0,0.12));
+      min-width: 0;
+    }
+
+    .footer-btn:last-child {
+      border-right: none;
+    }
+
+    .footer-btn:active {
+      background: color-mix(in srgb, var(--primary-color, #ff8800) 12%, var(--card-background-color, #fff));
+    }
+
+    .footer-btn ha-icon {
+      --mdc-icon-size: 22px;
+    }
+
+    .footer-btn .footer-btn-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      padding: 0 2px;
+    }
+
+    .footer-btn.is-on ha-icon {
+      color: var(--card-accent, var(--primary-color, #ff8800));
+    }
+
     /* ── Responsive ── */
     @media (max-width: 600px) {
       ha-card {
@@ -886,11 +997,9 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
             const key = keys[i];
             const isLast = i === keys.length - 1;
             if (isLast) {
-                if (path === "sensors.extras") {
-                    current[key] = value.split(",")
-                        .map((v) => v.trim())
-                        .filter((v) => v)
-                        .map((entityId) => ({ entity: entityId }));
+                // Delete the key entirely when value is empty/undefined — avoids invalid config
+                if (value === undefined || value === null || value === "") {
+                    delete current[key];
                 }
                 else {
                     current[key] = value;
@@ -910,7 +1019,7 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
         }));
     }
     _pick(path, value) {
-        this._emit(path, value ?? "");
+        this._emit(path, value);
     }
     _lightEntities() {
         const raw = this._config?.lights?.entities;
@@ -921,9 +1030,10 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
         return [];
     }
     _setLightEntities(entities) {
-        const updated = { ...(this._config ?? { type: "custom:tech-art-room-card" }) };
-        const existing = updated["lights"];
-        updated["lights"] = { ...(existing ?? {}), entities };
+        const updated = JSON.parse(JSON.stringify(this._config ?? { type: "custom:tech-art-room-card" }));
+        if (!updated["lights"] || typeof updated["lights"] !== "object")
+            updated["lights"] = {};
+        updated["lights"]["entities"] = entities;
         this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: updated }, bubbles: true, composed: true }));
     }
     _extraEntities() {
@@ -933,14 +1043,29 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
         return [];
     }
     _setExtraEntities(entities) {
-        const updated = { ...(this._config ?? { type: "custom:tech-art-room-card" }) };
-        const existing = updated["sensors"];
-        updated["sensors"] = { ...(existing ?? {}), extras: entities.map((e) => ({ entity: e })) };
+        const updated = JSON.parse(JSON.stringify(this._config ?? { type: "custom:tech-art-room-card" }));
+        if (!updated["sensors"] || typeof updated["sensors"] !== "object")
+            updated["sensors"] = {};
+        updated["sensors"]["extras"] = entities.map((e) => ({ entity: e }));
+        this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: updated }, bubbles: true, composed: true }));
+    }
+    _footerButtons() {
+        const raw = this._config?.footer;
+        if (Array.isArray(raw))
+            return raw;
+        return [];
+    }
+    _setFooterButtons(buttons) {
+        const updated = JSON.parse(JSON.stringify(this._config ?? { type: "custom:tech-art-room-card" }));
+        updated["footer"] = buttons.length ? buttons : undefined;
+        if (updated["footer"] === undefined)
+            delete updated["footer"];
         this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: updated }, bubbles: true, composed: true }));
     }
     render() {
         const lightEntities = this._lightEntities();
         const extraEntities = this._extraEntities();
+        const footerButtons = this._footerButtons();
         return b `
       <div class="editor-container">
         <div class="form-row">
@@ -1166,6 +1291,74 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
             ></ha-selector>
           </div>
         </div>
+
+        <div class="section">
+          <div class="section-title">Footer Buttons</div>
+          ${footerButtons.map((btn, idx) => b `
+            <div class="footer-btn-editor">
+              <div class="footer-btn-editor-header">
+                <span>Button ${idx + 1}</span>
+                <button class="remove-btn" @click=${() => {
+            const updated = footerButtons.filter((_, i) => i !== idx);
+            this._setFooterButtons(updated);
+        }}>Remove</button>
+              </div>
+              <div class="form-row">
+                <label>Entity *</label>
+                <ha-selector
+                  .hass=${this.hass}
+                  .value=${btn.entity}
+                  .selector=${{ entity: {} }}
+                  allow-custom-entity
+                  .required=${false}
+                  @value-changed=${(e) => {
+            const updated = footerButtons.map((b, i) => i === idx ? { ...b, entity: e.detail.value ?? "" } : b);
+            this._setFooterButtons(updated.filter((b) => b.entity));
+        }}
+                ></ha-selector>
+              </div>
+              <div class="footer-btn-grid">
+                <div class="form-row">
+                  <label>Label text</label>
+                  <input
+                    .value=${btn.text ?? ""}
+                    placeholder="e.g. Lights"
+                    @input=${(e) => {
+            const val = e.target.value;
+            const updated = footerButtons.map((b, i) => i === idx ? { ...b, text: val || undefined } : b);
+            this._setFooterButtons(updated);
+        }}
+                  />
+                </div>
+                <div class="form-row">
+                  <label>Icon (mdi:...)</label>
+                  <input
+                    .value=${btn.icon ?? ""}
+                    placeholder="e.g. mdi:lightbulb"
+                    @input=${(e) => {
+            const val = e.target.value;
+            const updated = footerButtons.map((b, i) => i === idx ? { ...b, icon: val || undefined } : b);
+            this._setFooterButtons(updated);
+        }}
+                  />
+                </div>
+                <div class="form-row">
+                  <label>Off icon (mdi:...)</label>
+                  <input
+                    .value=${btn.off_icon ?? ""}
+                    placeholder="e.g. mdi:lightbulb-outline"
+                    @input=${(e) => {
+            const val = e.target.value;
+            const updated = footerButtons.map((b, i) => i === idx ? { ...b, off_icon: val || undefined } : b);
+            this._setFooterButtons(updated);
+        }}
+                  />
+                </div>
+              </div>
+            </div>
+          `)}
+          <button class="add-btn" @click=${() => this._setFooterButtons([...footerButtons, { entity: "" }])}>+ Add button</button>
+        </div>
       </div>
     `;
     }
@@ -1252,6 +1445,31 @@ TechArtRoomCardEditor.styles = i$3 `
       font-size: 13px;
       width: 100%;
       margin-top: 4px;
+    }
+    .footer-btn-editor {
+      border: 1px solid var(--divider-color);
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .footer-btn-editor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--secondary-text-color);
+    }
+    .footer-btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .footer-btn-grid .form-row {
+      margin-bottom: 0;
     }
   `;
 __decorate([
