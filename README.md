@@ -2,6 +2,8 @@
 
 A Lovelace room dashboard card with a native Home Assistant look, visual editor support, and dynamic sections.
 
+<img width="1042" height="622" alt="image" src="https://github.com/user-attachments/assets/a18422ea-eb2f-4c08-aaff-00516737580f" />
+
 <img width="1046" height="613" alt="image" src="https://github.com/user-attachments/assets/922e2701-8765-4b0d-b817-ad1d1da1de92" />
 
 ## What it can do
