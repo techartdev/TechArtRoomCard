@@ -353,6 +353,22 @@ export class TechArtRoomCard extends LitElement {
     return [formatted, unit].filter(Boolean).join(" ").trim();
   }
 
+  private _formatFallbackClimateValue(entity: HassEntity): string {
+    const unit = (entity.attributes.unit_of_measurement as string | undefined) ?? "";
+    const numeric = Number(entity.state);
+    if (!Number.isFinite(numeric)) {
+      return [entity.state, unit].filter(Boolean).join(" ").trim();
+    }
+
+    const autoPrecision = Math.abs(numeric) >= 100 ? 0 : Math.abs(numeric) >= 10 ? 1 : 2;
+    const normalized = Math.max(0, Math.min(4, Math.round(autoPrecision)));
+    const formatted = new Intl.NumberFormat(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: normalized,
+    }).format(numeric);
+    return [formatted, unit].filter(Boolean).join(" ").trim();
+  }
+
   private _footerAction(btn: FooterButton): void {
     const entity = this._e(btn.entity);
     if (!entity) return;
@@ -488,11 +504,12 @@ export class TechArtRoomCard extends LitElement {
       const fallback = this._config.climate?.fallback_entity as string;
       const fb = this._e(fallback);
       if (!fb) return nothing;
+      const fallbackValue = this._formatFallbackClimateValue(fb);
       return html`
         <section class="panel">
           <div class="panel-title">Climate</div>
           <div class="climate-body">
-            <span class="climate-temp">${fb.state}°</span>
+            <span class="climate-temp climate-temp-fallback">${fallbackValue}</span>
             <span class="climate-setpoint">${this._name(fallback)}</span>
           </div>
         </section>

@@ -270,6 +270,14 @@ export const cardStyles = css`
     letter-spacing: -0.03em;
   }
 
+  .climate-temp-fallback {
+    font-size: clamp(1.4rem, 4.8vw, 2.5rem);
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    text-align: center;
+    line-height: 1.1;
+  }
+
   .climate-setpoint {
     font-size: 1.1rem;
     font-weight: 700;

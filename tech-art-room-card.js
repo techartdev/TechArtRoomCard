@@ -342,6 +342,14 @@ const cardStyles = i$3 `
     letter-spacing: -0.03em;
   }
 
+  .climate-temp-fallback {
+    font-size: clamp(1.4rem, 4.8vw, 2.5rem);
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    text-align: center;
+    line-height: 1.1;
+  }
+
   .climate-setpoint {
     font-size: 1.1rem;
     font-weight: 700;
@@ -757,7 +765,7 @@ const editorStyles = i$3 `
   }
 `;
 
-const CARD_VERSION = "0.1.18";
+const CARD_VERSION = "0.1.19";
 let TechArtRoomCard = class TechArtRoomCard extends i {
     setConfig(config) {
         if (!config?.type) {
@@ -975,6 +983,20 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         const formatted = this._formatNumber(numeric, precision ?? autoPrecision);
         return [formatted, unit].filter(Boolean).join(" ").trim();
     }
+    _formatFallbackClimateValue(entity) {
+        const unit = entity.attributes.unit_of_measurement ?? "";
+        const numeric = Number(entity.state);
+        if (!Number.isFinite(numeric)) {
+            return [entity.state, unit].filter(Boolean).join(" ").trim();
+        }
+        const autoPrecision = Math.abs(numeric) >= 100 ? 0 : Math.abs(numeric) >= 10 ? 1 : 2;
+        const normalized = Math.max(0, Math.min(4, Math.round(autoPrecision)));
+        const formatted = new Intl.NumberFormat(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: normalized,
+        }).format(numeric);
+        return [formatted, unit].filter(Boolean).join(" ").trim();
+    }
     _footerAction(btn) {
         const entity = this._e(btn.entity);
         if (!entity)
@@ -1105,11 +1127,12 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
             const fb = this._e(fallback);
             if (!fb)
                 return A;
+            const fallbackValue = this._formatFallbackClimateValue(fb);
             return b `
         <section class="panel">
           <div class="panel-title">Climate</div>
           <div class="climate-body">
-            <span class="climate-temp">${fb.state}°</span>
+            <span class="climate-temp climate-temp-fallback">${fallbackValue}</span>
             <span class="climate-setpoint">${this._name(fallback)}</span>
           </div>
         </section>
