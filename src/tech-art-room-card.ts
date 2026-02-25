@@ -522,7 +522,7 @@ export class TechArtRoomCard extends LitElement {
     const progress = Math.max(0, Math.min(1, (interactiveTarget - minTarget) / normalizedRange));
     const currentProgress = Math.max(0, Math.min(1, (clampedCurrent - minTarget) / normalizedRange));
     const CX = 50, CY = 50;
-    const startDeg = 210;
+    const startDeg = 150;
     const sweepDeg = 240;
     const R = 43;
     const strokeW = 8;
