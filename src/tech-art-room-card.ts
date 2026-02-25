@@ -62,6 +62,14 @@ interface ShadesConfig {
   fallback_entity?: string;
 }
 
+interface SectionTitlesConfig {
+  lights?: string;
+  climate?: string;
+  media?: string;
+  sensors?: string;
+  shades?: string;
+}
+
 interface FooterButton {
   entity: string;
   text?: string;
@@ -72,6 +80,7 @@ interface FooterButton {
 interface RoomCardConfig {
   type: string;
   title?: string;
+  section_titles?: SectionTitlesConfig;
   header?: HeaderConfig;
   lights?: LightsConfig;
   climate?: ClimateConfig;
@@ -142,6 +151,13 @@ export class TechArtRoomCard extends LitElement {
     this._config = {
       type: config.type,
       title: config.title ?? "Living Room",
+      section_titles: {
+        lights: config.section_titles?.lights,
+        climate: config.section_titles?.climate,
+        media: config.section_titles?.media,
+        sensors: config.section_titles?.sensors,
+        shades: config.section_titles?.shades,
+      },
       header: {
         show_clock: config.header?.show_clock ?? true,
         show_weather: config.header?.show_weather ?? true,
@@ -200,6 +216,12 @@ export class TechArtRoomCard extends LitElement {
       entityId.split(".").pop() ??
       entityId
     );
+  }
+
+  private _sectionTitle(key: keyof SectionTitlesConfig, fallback: string): string {
+    const configured = this._config.section_titles?.[key];
+    if (typeof configured === "string" && configured.trim()) return configured.trim();
+    return fallback;
   }
 
   private _openMoreInfo(entityId: string): void {
@@ -348,8 +370,7 @@ export class TechArtRoomCard extends LitElement {
       return [entity.state, unit].filter(Boolean).join(" ").trim();
     }
 
-    const autoPrecision = Math.abs(numeric) >= 100 ? 0 : Math.abs(numeric) >= 10 ? 1 : 2;
-    const formatted = this._formatNumber(numeric, precision ?? autoPrecision);
+    const formatted = this._formatNumber(numeric, precision ?? 2);
     return [formatted, unit].filter(Boolean).join(" ").trim();
   }
 
@@ -360,8 +381,7 @@ export class TechArtRoomCard extends LitElement {
       return [entity.state, unit].filter(Boolean).join(" ").trim();
     }
 
-    const autoPrecision = Math.abs(numeric) >= 100 ? 0 : Math.abs(numeric) >= 10 ? 1 : 2;
-    const normalized = Math.max(0, Math.min(4, Math.round(autoPrecision)));
+    const normalized = 2;
     const formatted = new Intl.NumberFormat(undefined, {
       minimumFractionDigits: 0,
       maximumFractionDigits: normalized,
@@ -464,7 +484,7 @@ export class TechArtRoomCard extends LitElement {
 
     return html`
       <section class="panel">
-        <div class="panel-title">Lights</div>
+        <div class="panel-title">${this._sectionTitle("lights", "Lights")}</div>
         ${lights.map((id: string) => {
           const isOn = this._e(id)?.state === "on";
           return html`
@@ -507,7 +527,7 @@ export class TechArtRoomCard extends LitElement {
       const fallbackValue = this._formatFallbackClimateValue(fb);
       return html`
         <section class="panel">
-          <div class="panel-title">Climate</div>
+          <div class="panel-title">${this._sectionTitle("climate", "Climate")}</div>
           <div class="climate-body">
             <span class="climate-temp climate-temp-fallback">${fallbackValue}</span>
             <span class="climate-setpoint">${this._name(fallback)}</span>
@@ -562,7 +582,7 @@ export class TechArtRoomCard extends LitElement {
 
     return html`
       <section class="panel">
-        <div class="panel-title">Climate</div>
+        <div class="panel-title">${this._sectionTitle("climate", "Climate")}</div>
         <div class="climate-body">
           <div
             class="climate-dial"
@@ -635,7 +655,7 @@ export class TechArtRoomCard extends LitElement {
     const art = media.attributes.entity_picture as string | undefined;
     return html`
       <section class="panel">
-        <div class="panel-title">Media</div>
+        <div class="panel-title">${this._sectionTitle("media", "Media")}</div>
         <div class="media-row" @click=${() => this._openMoreInfo(media.entity_id)}>
           ${art ? html`<img class="thumb" src="${art}" alt="album art" />` : html`<div class="thumb"></div>`}
           <div class="media-info">
@@ -671,11 +691,11 @@ export class TechArtRoomCard extends LitElement {
 
     return html`
       <section class="panel">
-        <div class="panel-title">Sensors & Power</div>
+        <div class="panel-title">${this._sectionTitle("sensors", "Sensors & Power")}</div>
         <div class="sensor-chips">
           ${aq ? html`<span class="sensor-chip"><ha-icon icon="mdi:air-filter"></ha-icon><span class="chip-label">Air Quality</span><span class="chip-value">${this._formatEntityValue(aq)}</span></span>` : nothing}
-          ${pm ? html`<span class="sensor-chip"><ha-icon icon="mdi:blur"></ha-icon><span class="chip-label">PM2.5</span><span class="chip-value">${this._formatEntityValue(pm, 1)}</span></span>` : nothing}
-          ${power ? html`<span class="sensor-chip"><ha-icon icon="mdi:flash"></ha-icon><span class="chip-label">Power</span><span class="chip-value">${this._formatEntityValue(power, 0)}</span></span>` : nothing}
+          ${pm ? html`<span class="sensor-chip"><ha-icon icon="mdi:blur"></ha-icon><span class="chip-label">PM2.5</span><span class="chip-value">${this._formatEntityValue(pm)}</span></span>` : nothing}
+          ${power ? html`<span class="sensor-chip"><ha-icon icon="mdi:flash"></ha-icon><span class="chip-label">Power</span><span class="chip-value">${this._formatEntityValue(power)}</span></span>` : nothing}
           ${extras.map((item) => {
             const e = this._e(item.entity)!;
             return html`<span class="sensor-chip extra"><span class="chip-label">${item.name ?? this._name(item.entity)}</span><span class="chip-value">${this._formatEntityValue(e, item.precision)}</span></span>`;
@@ -698,7 +718,7 @@ export class TechArtRoomCard extends LitElement {
 
     return html`
       <section class="panel">
-        <div class="panel-title">Shades</div>
+        <div class="panel-title">${this._sectionTitle("shades", "Shades")}</div>
         ${shade
           ? html`
               <div class="shade-slider-wrap">
@@ -729,7 +749,7 @@ export class TechArtRoomCard extends LitElement {
               <div class="shade-row" @click=${() => this._openMoreInfo(power.entity_id)}>
                 <ha-icon icon="mdi:flash"></ha-icon>
                 <span class="entity-name">Power</span>
-                <span class="shade-position">${power.state} ${power.attributes.unit_of_measurement ?? ""}</span>
+                <span class="shade-position">${this._formatEntityValue(power)}</span>
                 <ha-icon class="chevron" icon="mdi:chevron-right"></ha-icon>
               </div>`
           : nothing}
@@ -738,7 +758,7 @@ export class TechArtRoomCard extends LitElement {
               <div class="shade-row" @click=${() => this._openMoreInfo(fallback.entity_id)}>
                 <ha-icon icon="mdi:thermometer"></ha-icon>
                 <span class="entity-name">${this._name(fallback.entity_id)}</span>
-                <span class="shade-position">${fallback.state}</span>
+                <span class="shade-position">${this._formatEntityValue(fallback)}</span>
                 <ha-icon class="chevron" icon="mdi:chevron-right"></ha-icon>
               </div>`
           : nothing}
@@ -901,6 +921,30 @@ export class TechArtRoomCardEditor extends LitElement {
         <div class="form-row">
           <label>Room title</label>
           <input .value=${this._value("title", "Living Room")} @input=${(e: Event) => this._emit("title", (e.target as HTMLInputElement).value)} />
+        </div>
+
+        <div class="section">
+          <div class="section-title">Section Titles</div>
+          <div class="form-row">
+            <label>Lights title</label>
+            <input .value=${this._value("section_titles.lights")} @input=${(e: Event) => this._emit("section_titles.lights", (e.target as HTMLInputElement).value)} />
+          </div>
+          <div class="form-row">
+            <label>Climate title</label>
+            <input .value=${this._value("section_titles.climate")} @input=${(e: Event) => this._emit("section_titles.climate", (e.target as HTMLInputElement).value)} />
+          </div>
+          <div class="form-row">
+            <label>Media title</label>
+            <input .value=${this._value("section_titles.media")} @input=${(e: Event) => this._emit("section_titles.media", (e.target as HTMLInputElement).value)} />
+          </div>
+          <div class="form-row">
+            <label>Sensors title</label>
+            <input .value=${this._value("section_titles.sensors")} @input=${(e: Event) => this._emit("section_titles.sensors", (e.target as HTMLInputElement).value)} />
+          </div>
+          <div class="form-row">
+            <label>Shades title</label>
+            <input .value=${this._value("section_titles.shades")} @input=${(e: Event) => this._emit("section_titles.shades", (e.target as HTMLInputElement).value)} />
+          </div>
         </div>
 
         <div class="section">

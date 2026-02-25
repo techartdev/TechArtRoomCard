@@ -810,6 +810,13 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         this._config = {
             type: config.type,
             title: config.title ?? "Living Room",
+            section_titles: {
+                lights: config.section_titles?.lights,
+                climate: config.section_titles?.climate,
+                media: config.section_titles?.media,
+                sensors: config.section_titles?.sensors,
+                shades: config.section_titles?.shades,
+            },
             header: {
                 show_clock: config.header?.show_clock ?? true,
                 show_weather: config.header?.show_weather ?? true,
@@ -863,6 +870,12 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         return (this._e(entityId)?.attributes?.friendly_name ??
             entityId.split(".").pop() ??
             entityId);
+    }
+    _sectionTitle(key, fallback) {
+        const configured = this._config.section_titles?.[key];
+        if (typeof configured === "string" && configured.trim())
+            return configured.trim();
+        return fallback;
     }
     _openMoreInfo(entityId) {
         this.dispatchEvent(new CustomEvent("hass-more-info", {
@@ -979,8 +992,7 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         if (!Number.isFinite(numeric)) {
             return [entity.state, unit].filter(Boolean).join(" ").trim();
         }
-        const autoPrecision = Math.abs(numeric) >= 100 ? 0 : Math.abs(numeric) >= 10 ? 1 : 2;
-        const formatted = this._formatNumber(numeric, precision ?? autoPrecision);
+        const formatted = this._formatNumber(numeric, precision ?? 2);
         return [formatted, unit].filter(Boolean).join(" ").trim();
     }
     _formatFallbackClimateValue(entity) {
@@ -989,8 +1001,7 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         if (!Number.isFinite(numeric)) {
             return [entity.state, unit].filter(Boolean).join(" ").trim();
         }
-        const autoPrecision = Math.abs(numeric) >= 100 ? 0 : Math.abs(numeric) >= 10 ? 1 : 2;
-        const normalized = Math.max(0, Math.min(4, Math.round(autoPrecision)));
+        const normalized = 2;
         const formatted = new Intl.NumberFormat(undefined, {
             minimumFractionDigits: 0,
             maximumFractionDigits: normalized,
@@ -1089,7 +1100,7 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         const brightness = Math.round(((bEntity?.attributes.brightness ?? 0) / 255) * 100);
         return b `
       <section class="panel">
-        <div class="panel-title">Lights</div>
+        <div class="panel-title">${this._sectionTitle("lights", "Lights")}</div>
         ${lights.map((id) => {
             const isOn = this._e(id)?.state === "on";
             return b `
@@ -1130,7 +1141,7 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
             const fallbackValue = this._formatFallbackClimateValue(fb);
             return b `
         <section class="panel">
-          <div class="panel-title">Climate</div>
+          <div class="panel-title">${this._sectionTitle("climate", "Climate")}</div>
           <div class="climate-body">
             <span class="climate-temp climate-temp-fallback">${fallbackValue}</span>
             <span class="climate-setpoint">${this._name(fallback)}</span>
@@ -1182,7 +1193,7 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         const currentDotY = py(currentAngleDeg);
         return b `
       <section class="panel">
-        <div class="panel-title">Climate</div>
+        <div class="panel-title">${this._sectionTitle("climate", "Climate")}</div>
         <div class="climate-body">
           <div
             class="climate-dial"
@@ -1251,7 +1262,7 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         const art = media.attributes.entity_picture;
         return b `
       <section class="panel">
-        <div class="panel-title">Media</div>
+        <div class="panel-title">${this._sectionTitle("media", "Media")}</div>
         <div class="media-row" @click=${() => this._openMoreInfo(media.entity_id)}>
           ${art ? b `<img class="thumb" src="${art}" alt="album art" />` : b `<div class="thumb"></div>`}
           <div class="media-info">
@@ -1284,11 +1295,11 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
             return A;
         return b `
       <section class="panel">
-        <div class="panel-title">Sensors & Power</div>
+        <div class="panel-title">${this._sectionTitle("sensors", "Sensors & Power")}</div>
         <div class="sensor-chips">
           ${aq ? b `<span class="sensor-chip"><ha-icon icon="mdi:air-filter"></ha-icon><span class="chip-label">Air Quality</span><span class="chip-value">${this._formatEntityValue(aq)}</span></span>` : A}
-          ${pm ? b `<span class="sensor-chip"><ha-icon icon="mdi:blur"></ha-icon><span class="chip-label">PM2.5</span><span class="chip-value">${this._formatEntityValue(pm, 1)}</span></span>` : A}
-          ${power ? b `<span class="sensor-chip"><ha-icon icon="mdi:flash"></ha-icon><span class="chip-label">Power</span><span class="chip-value">${this._formatEntityValue(power, 0)}</span></span>` : A}
+          ${pm ? b `<span class="sensor-chip"><ha-icon icon="mdi:blur"></ha-icon><span class="chip-label">PM2.5</span><span class="chip-value">${this._formatEntityValue(pm)}</span></span>` : A}
+          ${power ? b `<span class="sensor-chip"><ha-icon icon="mdi:flash"></ha-icon><span class="chip-label">Power</span><span class="chip-value">${this._formatEntityValue(power)}</span></span>` : A}
           ${extras.map((item) => {
             const e = this._e(item.entity);
             return b `<span class="sensor-chip extra"><span class="chip-label">${item.name ?? this._name(item.entity)}</span><span class="chip-value">${this._formatEntityValue(e, item.precision)}</span></span>`;
@@ -1308,7 +1319,7 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         const position = shade?.attributes.current_position ?? 0;
         return b `
       <section class="panel">
-        <div class="panel-title">Shades</div>
+        <div class="panel-title">${this._sectionTitle("shades", "Shades")}</div>
         ${shade
             ? b `
               <div class="shade-slider-wrap">
@@ -1338,7 +1349,7 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
               <div class="shade-row" @click=${() => this._openMoreInfo(power.entity_id)}>
                 <ha-icon icon="mdi:flash"></ha-icon>
                 <span class="entity-name">Power</span>
-                <span class="shade-position">${power.state} ${power.attributes.unit_of_measurement ?? ""}</span>
+                <span class="shade-position">${this._formatEntityValue(power)}</span>
                 <ha-icon class="chevron" icon="mdi:chevron-right"></ha-icon>
               </div>`
             : A}
@@ -1347,7 +1358,7 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
               <div class="shade-row" @click=${() => this._openMoreInfo(fallback.entity_id)}>
                 <ha-icon icon="mdi:thermometer"></ha-icon>
                 <span class="entity-name">${this._name(fallback.entity_id)}</span>
-                <span class="shade-position">${fallback.state}</span>
+                <span class="shade-position">${this._formatEntityValue(fallback)}</span>
                 <ha-icon class="chevron" icon="mdi:chevron-right"></ha-icon>
               </div>`
             : A}
@@ -1499,6 +1510,30 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
         <div class="form-row">
           <label>Room title</label>
           <input .value=${this._value("title", "Living Room")} @input=${(e) => this._emit("title", e.target.value)} />
+        </div>
+
+        <div class="section">
+          <div class="section-title">Section Titles</div>
+          <div class="form-row">
+            <label>Lights title</label>
+            <input .value=${this._value("section_titles.lights")} @input=${(e) => this._emit("section_titles.lights", e.target.value)} />
+          </div>
+          <div class="form-row">
+            <label>Climate title</label>
+            <input .value=${this._value("section_titles.climate")} @input=${(e) => this._emit("section_titles.climate", e.target.value)} />
+          </div>
+          <div class="form-row">
+            <label>Media title</label>
+            <input .value=${this._value("section_titles.media")} @input=${(e) => this._emit("section_titles.media", e.target.value)} />
+          </div>
+          <div class="form-row">
+            <label>Sensors title</label>
+            <input .value=${this._value("section_titles.sensors")} @input=${(e) => this._emit("section_titles.sensors", e.target.value)} />
+          </div>
+          <div class="form-row">
+            <label>Shades title</label>
+            <input .value=${this._value("section_titles.shades")} @input=${(e) => this._emit("section_titles.shades", e.target.value)} />
+          </div>
         </div>
 
         <div class="section">

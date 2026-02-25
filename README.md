@@ -49,6 +49,12 @@ climate:
   fallback_entity: sensor.living_room_comfort_index
 media:
   entity: media_player.living_room_tv
+section_titles:
+  lights: Lighting
+  climate: Air Control
+  media: Entertainment
+  sensors: Environment
+  shades: Blinds
 sensors:
   air_quality_entity: sensor.living_room_air_quality
   pm25_entity: sensor.living_room_pm25
@@ -67,7 +73,9 @@ shades:
 
 - If `climate.entity` is absent/unavailable and `climate.fallback_entity` exists, fallback is shown instead of HVAC controls.
 - Lights/media/sensors/shades panels are hidden automatically when configured entities are missing.
-- `sensors.extras[].precision` is optional and controls decimal places (0-4) for extra sensor value display.
+- Sensor values default to 2 decimal places across the card (including shades sensor rows).
+- `sensors.extras[].precision` is optional and overrides decimal places (0-4) for extra sensor value display.
+- `section_titles` is optional and lets you override panel titles (`lights`, `climate`, `media`, `sensors`, `shades`).
 - Use Lovelace visual card editor for common fields (title, weather/temp, lights, climate, media, sensors, shades).
 
 ## Development
