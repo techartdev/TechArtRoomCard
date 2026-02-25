@@ -2,7 +2,7 @@
 
 A dynamic Home Assistant Lovelace room cockpit card with a native HA look and configurable sections.
 
-<img width="1057" height="648" alt="image" src="https://github.com/user-attachments/assets/e37dc940-acf1-4750-9b85-350d2210f3fc" />
+<img width="1046" height="613" alt="image" src="https://github.com/user-attachments/assets/922e2701-8765-4b0d-b817-ad1d1da1de92" />
 
 
 ## Highlights
