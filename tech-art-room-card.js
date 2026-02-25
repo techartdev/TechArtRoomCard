@@ -1139,7 +1139,7 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         const progress = Math.max(0, Math.min(1, (interactiveTarget - minTarget) / normalizedRange));
         const currentProgress = Math.max(0, Math.min(1, (clampedCurrent - minTarget) / normalizedRange));
         const CX = 50, CY = 50;
-        const startDeg = 150;
+        const startDeg = 210;
         const sweepDeg = 240;
         const R = 41;
         const strokeW = 9;
@@ -1183,33 +1183,25 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
                 fill="none"
                 stroke="var(--card-accent)"
                 stroke-width=${strokeW}
-                stroke-linecap="butt"
+                stroke-linecap="round"
                 stroke-dasharray=${`${fillLength} ${arcLength}`}
                 d=${arcPath}
               ></path>` : A}
-              ${hasFill ? b `<circle
-                cx=${dotX.toFixed(3)}
-                cy=${dotY.toFixed(3)}
-                r="5"
-                fill="var(--card-accent)"
-                stroke-linecap="round"
-              ></circle>` : A}
-              <circle
-                cx=${dotX.toFixed(3)}
-                cy=${dotY.toFixed(3)}
-                r="4"
-                fill="white"
-                stroke="var(--card-accent)"
-                stroke-width="1.5"
-              ></circle>
               <circle cx=${CX} cy=${CY} r=${innerR.toFixed(3)} fill="var(--panel-bg)"></circle>
               <circle
                 cx=${currentDotX.toFixed(3)}
                 cy=${currentDotY.toFixed(3)}
                 r="3"
-                fill="rgba(255,255,255,0.75)"
-                stroke="rgba(255,255,255,0.3)"
-                stroke-width="1"
+                fill="rgba(255,255,255,0.65)"
+                stroke="none"
+              ></circle>
+              <circle
+                cx=${dotX.toFixed(3)}
+                cy=${dotY.toFixed(3)}
+                r="6"
+                fill="white"
+                stroke="var(--card-accent)"
+                stroke-width="2"
               ></circle>
             </svg>
             <div class="climate-center">
