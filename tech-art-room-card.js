@@ -72,6 +72,746 @@ const t=t=>(e,o)=>{ void 0!==o?o.addInitializer(()=>{customElements.define(t,e);
  * SPDX-License-Identifier: BSD-3-Clause
  */function r(r){return n({...r,state:true,attribute:false})}
 
+const cardStyles = i$3 `
+  :host {
+    display: block;
+    --card-accent: var(--accent-color, #f5a623);
+    --card-radius: 20px;
+    --panel-radius: 16px;
+    --panel-bg: var(--ha-card-background, var(--card-background-color, #1c1c1e));
+    --panel-border: 1px solid color-mix(in srgb, var(--divider-color, #444) 60%, transparent);
+    --panel-gap: 12px;
+    --text-primary: var(--primary-text-color, #e1e1e1);
+    --text-secondary: var(--secondary-text-color, #9e9e9e);
+    font-family: var(--ha-card-header-font-family, inherit);
+  }
+
+  ha-card {
+    border-radius: var(--card-radius);
+    box-shadow: var(--ha-card-box-shadow, 0 2px 8px rgba(0, 0, 0, 0.2));
+    padding: 20px;
+    background: var(--panel-bg);
+    color: var(--text-primary);
+    overflow: hidden;
+  }
+
+  /* ── Shell ── */
+  .shell {
+    display: flex;
+    flex-direction: column;
+    gap: var(--panel-gap);
+  }
+
+  /* ── Header ── */
+  .header {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    padding: 0 0 16px;
+    border-bottom: 1px solid var(--divider-color, #333);
+    gap: 16px;
+    min-height: 48px;
+  }
+
+  .clock {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+  }
+
+  .time {
+    font-size: 1.6rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .date {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  .title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .weather {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-self: end;
+  }
+
+  .weather ha-icon {
+    --mdc-icon-size: 28px;
+    color: var(--card-accent);
+  }
+
+  .weather-temp {
+    font-size: 1.6rem;
+    font-weight: 700;
+  }
+
+  /* ── Grid ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--panel-gap);
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--panel-gap);
+    min-width: 0;
+  }
+
+  /* ── Panel (sub-card) ── */
+  .panel {
+    border-radius: var(--panel-radius);
+    background: color-mix(in srgb, var(--card-background-color, #1c1c1e) 85%, var(--primary-background-color, #111) 15%);
+    border: var(--panel-border);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+  }
+
+  .panel-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: 0.01em;
+  }
+
+  /* ── Light rows ── */
+  .light-row {
+    display: grid;
+    grid-template-columns: 24px 1fr auto 24px;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    cursor: pointer;
+  }
+
+  .light-row:not(:last-of-type) {
+    border-bottom: 1px solid color-mix(in srgb, var(--divider-color, #333) 50%, transparent);
+  }
+
+  .light-row ha-icon {
+    --mdc-icon-size: 20px;
+    color: var(--card-accent);
+  }
+
+  .light-row .chevron {
+    --mdc-icon-size: 18px;
+    color: var(--text-secondary);
+  }
+
+  .entity-name {
+    font-size: 0.92rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pill {
+    border: 0;
+    border-radius: 999px;
+    padding: 3px 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .pill.on {
+    background: var(--card-accent);
+    color: #fff;
+  }
+
+  .pill.off {
+    background: color-mix(in srgb, var(--disabled-color, #555) 70%, transparent);
+    color: var(--text-secondary);
+  }
+
+  /* ── Brightness / Cover sliders ── */
+  .slider-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+    margin-top: 2px;
+  }
+
+  .slider-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    min-width: 36px;
+    text-align: right;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--divider-color, #444) 60%, transparent);
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--card-accent);
+    cursor: pointer;
+    border: 2px solid var(--panel-bg);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--card-accent);
+    cursor: pointer;
+    border: 2px solid var(--panel-bg);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+
+  /* ── Climate ── */
+  .climate-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 0 0;
+  }
+
+  .climate-dial {
+    width: min(206px, 100%);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    position: relative;
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--divider-color, #444) 18%, transparent);
+    overflow: hidden;
+    touch-action: none;
+    cursor: pointer;
+  }
+
+  .climate-arc {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .climate-arc-track,
+  .climate-arc-fill {
+    fill: none;
+    stroke-width: 10;
+    stroke-linecap: round;
+  }
+
+  .climate-arc-track {
+    stroke: color-mix(in srgb, var(--divider-color, #444) 62%, transparent);
+  }
+
+  .climate-arc-fill {
+    stroke: var(--card-accent);
+    stroke-linecap: butt;
+  }
+
+  .climate-dial::before {
+    content: "";
+    position: absolute;
+    inset: 22px;
+    border-radius: 50%;
+    background: var(--panel-bg);
+    z-index: 1;
+  }
+
+  .climate-dot {
+    position: absolute;
+    z-index: 4;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    border: 2px solid var(--card-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--panel-bg) 80%, transparent), 0 2px 8px rgba(0, 0, 0, 0.35);
+  }
+
+  .climate-current-dot {
+    position: absolute;
+    z-index: 4;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: color-mix(in srgb, #fff 88%, var(--card-accent) 12%);
+    border: 1px solid color-mix(in srgb, var(--panel-bg) 75%, transparent);
+    opacity: 0.9;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--panel-bg) 80%, transparent);
+  }
+
+  .climate-center {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-align: center;
+    margin-top: -8px;
+  }
+
+  .climate-mode-label {
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-transform: capitalize;
+    color: var(--text-primary);
+    letter-spacing: 0.01em;
+  }
+
+  .climate-temp {
+    font-size: 3.2rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  .climate-setpoint {
+    font-size: 1.1rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: color-mix(in srgb, var(--card-accent) 70%, #fff 30%);
+  }
+
+  .climate-setpoint ha-icon {
+    --mdc-icon-size: 15px;
+    color: var(--text-secondary);
+  }
+
+  .mode-row {
+    display: flex;
+    gap: 0;
+    width: 100%;
+    margin-top: 4px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--divider-color, #444) 36%, transparent);
+    border: 1px solid color-mix(in srgb, var(--divider-color, #444) 52%, transparent);
+  }
+
+  .mode-btn {
+    border: 0;
+    border-radius: 0;
+    padding: 7px 6px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, transform 0.15s;
+    background: transparent;
+    color: var(--text-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    text-transform: capitalize;
+    flex: 1 1 0;
+    min-width: 0;
+    border-right: 1px solid color-mix(in srgb, var(--divider-color, #444) 55%, transparent);
+  }
+
+  .mode-btn:last-child {
+    border-right: none;
+  }
+
+  .mode-btn ha-icon {
+    --mdc-icon-size: 16px;
+  }
+
+  .mode-btn.active {
+    background: var(--card-accent);
+    color: #fff;
+    transform: none;
+  }
+
+  /* ── Media ── */
+  .media-row {
+    display: grid;
+    grid-template-columns: 48px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    cursor: pointer;
+  }
+
+  .thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--card-accent) 30%, var(--panel-bg));
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  .media-info {
+    min-width: 0;
+  }
+
+  .media-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .media-subtitle {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .media-play {
+    border: 0;
+    background: color-mix(in srgb, var(--divider-color, #444) 50%, transparent);
+    color: var(--text-primary);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .media-play:hover {
+    background: var(--card-accent);
+    color: #fff;
+  }
+
+  /* ── Sensors ── */
+  .sensor-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .sensor-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    background: color-mix(in srgb, var(--divider-color, #444) 40%, transparent);
+    color: var(--text-primary);
+    max-width: 100%;
+  }
+
+  .sensor-chip ha-icon {
+    --mdc-icon-size: 14px;
+  }
+
+  .chip-label {
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  .chip-value {
+    font-weight: 700;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sensor-chip.extra {
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--divider-color, #444) 52%, transparent);
+  }
+
+  /* ── Shades ── */
+  .shade-row {
+    display: grid;
+    grid-template-columns: 24px auto 1fr 24px;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    cursor: pointer;
+  }
+
+  .shade-row ha-icon {
+    --mdc-icon-size: 20px;
+  }
+
+  .shade-row .chevron {
+    --mdc-icon-size: 18px;
+    color: var(--text-secondary);
+  }
+
+  .shade-position {
+    font-size: 0.92rem;
+    font-weight: 600;
+  }
+
+  .shade-slider-wrap {
+    display: grid;
+    grid-template-columns: 24px 1fr auto;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .shade-slider-wrap ha-icon {
+    --mdc-icon-size: 20px;
+    color: var(--card-accent);
+  }
+
+  /* ── Footer ── */
+  .footer-bar {
+    display: flex;
+    width: 100%;
+    margin-top: 10px;
+    overflow: hidden;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--divider-color, #444) 36%, transparent);
+    border: 1px solid color-mix(in srgb, var(--divider-color, #444) 52%, transparent);
+  }
+
+  .footer-btn {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 0.74rem;
+    font-weight: 700;
+    transition: background 0.15s, color 0.15s;
+    border-right: 1px solid color-mix(in srgb, var(--divider-color, #444) 55%, transparent);
+    min-width: 0;
+  }
+
+  .footer-btn:last-child {
+    border-right: none;
+  }
+
+  .footer-btn:active {
+    background: color-mix(in srgb, var(--card-accent) 28%, transparent);
+  }
+
+  .footer-btn ha-icon {
+    --mdc-icon-size: 20px;
+  }
+
+  .footer-btn .footer-btn-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    padding: 0 2px;
+  }
+
+  .footer-btn.is-on {
+    background: var(--card-accent);
+    color: #fff;
+  }
+
+  .footer-btn.is-on ha-icon {
+    color: #fff;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    ha-card {
+      padding: 14px;
+    }
+
+    .grid {
+      grid-template-columns: 1fr;
+    }
+
+    .header {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .title {
+      grid-column: 1 / -1;
+      grid-row: 1;
+      text-align: left;
+      font-size: 1.25rem;
+    }
+
+    .clock {
+      grid-row: 2;
+    }
+
+    .weather {
+      grid-row: 2;
+      justify-self: end;
+    }
+
+    .climate-temp {
+      font-size: 2.6rem;
+    }
+  }
+`;
+
+const editorStyles = i$3 `
+  .editor-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .section {
+    border: 1px solid var(--divider-color);
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .section-title {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 12px;
+    color: var(--primary-text-color);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+  .form-row:last-child {
+    margin-bottom: 0;
+  }
+  label {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    font-weight: 400;
+  }
+  ha-entity-picker {
+    width: 100%;
+    display: block;
+  }
+  input {
+    background: var(--card-background-color);
+    border: 1px solid var(--divider-color);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    color: var(--primary-text-color);
+    width: 100%;
+    box-sizing: border-box;
+  }
+  input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+  }
+  .light-entities {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .light-entity-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 6px;
+    align-items: center;
+  }
+  .extra-entity-row {
+    display: grid;
+    grid-template-columns: 1fr 92px auto;
+    gap: 6px;
+    align-items: center;
+  }
+  .precision-input {
+    background: var(--card-background-color);
+    border: 1px solid var(--divider-color);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 13px;
+    color: var(--primary-text-color);
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .remove-btn {
+    border: 0;
+    background: color-mix(in srgb, var(--error-color, #f44336) 15%, transparent);
+    color: var(--error-color, #f44336);
+    border-radius: 4px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .add-btn {
+    border: 1px dashed var(--divider-color);
+    background: transparent;
+    color: var(--primary-color);
+    border-radius: 4px;
+    padding: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    width: 100%;
+    margin-top: 4px;
+  }
+  .footer-btn-editor {
+    border: 1px solid var(--divider-color);
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .footer-btn-editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--secondary-text-color);
+  }
+  .footer-btn-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .footer-btn-grid .form-row {
+    margin-bottom: 0;
+  }
+`;
+
 const CARD_VERSION = "0.1.16";
 let TechArtRoomCard = class TechArtRoomCard extends i {
     setConfig(config) {
@@ -444,22 +1184,29 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
             : 0.5;
         const safeTarget = Number.isFinite(target) ? target : 21;
         const clampedTarget = Math.min(maxTarget, Math.max(minTarget, safeTarget));
+        const clampedCurrent = Math.min(maxTarget, Math.max(minTarget, Number.isFinite(currentTemp) ? currentTemp : minTarget));
         const interactiveTarget = this._climateDrag?.entityId === climate.entity_id && this._climateDragValue !== undefined
             ? this._climateDragValue
             : clampedTarget;
         const normalizedRange = Math.max(0.0001, maxTarget - minTarget);
         const progress = Math.max(0, Math.min(1, (interactiveTarget - minTarget) / normalizedRange));
+        const currentProgress = Math.max(0, Math.min(1, (clampedCurrent - minTarget) / normalizedRange));
         const startDeg = 150;
         const sweepDeg = 240;
         const radius = 41;
         const arcLength = 2 * Math.PI * radius * (sweepDeg / 360);
         const fillLength = arcLength * progress;
+        const hasFill = fillLength > 0.15;
         const endDeg = startDeg + sweepDeg;
         const arcPath = `M ${50 + Math.cos((startDeg * Math.PI) / 180) * radius} ${50 + Math.sin((startDeg * Math.PI) / 180) * radius} A ${radius} ${radius} 0 1 1 ${50 + Math.cos((endDeg * Math.PI) / 180) * radius} ${50 + Math.sin((endDeg * Math.PI) / 180) * radius}`;
         const dotAngleDeg = startDeg + progress * sweepDeg;
         const dotRadians = (dotAngleDeg * Math.PI) / 180;
         const dotX = 50 + Math.cos(dotRadians) * radius;
         const dotY = 50 + Math.sin(dotRadians) * radius;
+        const currentAngleDeg = startDeg + currentProgress * sweepDeg;
+        const currentRadians = (currentAngleDeg * Math.PI) / 180;
+        const currentDotX = 50 + Math.cos(currentRadians) * radius;
+        const currentDotY = 50 + Math.sin(currentRadians) * radius;
         return b `
       <section class="panel">
         <div class="panel-title">Climate</div>
@@ -473,8 +1220,9 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
           >
             <svg class="climate-arc" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
               <path class="climate-arc-track" d=${arcPath}></path>
-              <path class="climate-arc-fill" d=${arcPath} style=${`stroke-dasharray: ${fillLength} 999;`}></path>
+              <path class="climate-arc-fill" d=${arcPath} style=${`stroke-dasharray: ${fillLength} ${arcLength}; opacity: ${hasFill ? 1 : 0};`}></path>
             </svg>
+            <span class="climate-current-dot" style="left:${currentDotX}%; top:${currentDotY}%;" title="Current ${Math.round(currentTemp)}°"></span>
             <span class="climate-dot" style="left:${dotX}%; top:${dotY}%;"></span>
             <div class="climate-center">
               <span class="climate-mode-label">${active}</span>
@@ -623,605 +1371,7 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
     `;
     }
 };
-TechArtRoomCard.styles = i$3 `
-    :host {
-      display: block;
-      --card-accent: var(--accent-color, #f5a623);
-      --card-radius: 20px;
-      --panel-radius: 16px;
-      --panel-bg: var(--ha-card-background, var(--card-background-color, #1c1c1e));
-      --panel-border: 1px solid color-mix(in srgb, var(--divider-color, #444) 60%, transparent);
-      --panel-gap: 12px;
-      --text-primary: var(--primary-text-color, #e1e1e1);
-      --text-secondary: var(--secondary-text-color, #9e9e9e);
-      font-family: var(--ha-card-header-font-family, inherit);
-    }
-
-    ha-card {
-      border-radius: var(--card-radius);
-      box-shadow: var(--ha-card-box-shadow, 0 2px 8px rgba(0, 0, 0, 0.2));
-      padding: 20px;
-      background: var(--panel-bg);
-      color: var(--text-primary);
-      overflow: hidden;
-    }
-
-    /* ── Shell ── */
-    .shell {
-      display: flex;
-      flex-direction: column;
-      gap: var(--panel-gap);
-    }
-
-    /* ── Header ── */
-    .header {
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      align-items: center;
-      padding: 0 0 16px;
-      border-bottom: 1px solid var(--divider-color, #333);
-      gap: 16px;
-      min-height: 48px;
-    }
-
-    .clock {
-      display: flex;
-      flex-direction: column;
-      line-height: 1.15;
-    }
-
-    .time {
-      font-size: 1.6rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-    }
-
-    .date {
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-      margin-top: 2px;
-    }
-
-    .title {
-      font-size: 1.5rem;
-      font-weight: 700;
-      text-align: center;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .weather {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      justify-self: end;
-    }
-
-    .weather ha-icon {
-      --mdc-icon-size: 28px;
-      color: var(--card-accent);
-    }
-
-    .weather-temp {
-      font-size: 1.6rem;
-      font-weight: 700;
-    }
-
-    /* ── Grid ── */
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--panel-gap);
-    }
-
-    .col {
-      display: flex;
-      flex-direction: column;
-      gap: var(--panel-gap);
-      min-width: 0;
-    }
-
-    /* ── Panel (sub-card) ── */
-    .panel {
-      border-radius: var(--panel-radius);
-      background: color-mix(in srgb, var(--card-background-color, #1c1c1e) 85%, var(--primary-background-color, #111) 15%);
-      border: var(--panel-border);
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      overflow: hidden;
-    }
-
-    .panel-title {
-      font-size: 1.05rem;
-      font-weight: 700;
-      margin: 0;
-      letter-spacing: 0.01em;
-    }
-
-    /* ── Light rows ── */
-    .light-row {
-      display: grid;
-      grid-template-columns: 24px 1fr auto 24px;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 0;
-      cursor: pointer;
-    }
-
-    .light-row:not(:last-of-type) {
-      border-bottom: 1px solid color-mix(in srgb, var(--divider-color, #333) 50%, transparent);
-    }
-
-    .light-row ha-icon {
-      --mdc-icon-size: 20px;
-      color: var(--card-accent);
-    }
-
-    .light-row .chevron {
-      --mdc-icon-size: 18px;
-      color: var(--text-secondary);
-    }
-
-    .entity-name {
-      font-size: 0.92rem;
-      font-weight: 500;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .pill {
-      border: 0;
-      border-radius: 999px;
-      padding: 3px 12px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.03em;
-      cursor: pointer;
-      transition: background 0.15s, color 0.15s;
-    }
-
-    .pill.on {
-      background: var(--card-accent);
-      color: #fff;
-    }
-
-    .pill.off {
-      background: color-mix(in srgb, var(--disabled-color, #555) 70%, transparent);
-      color: var(--text-secondary);
-    }
-
-    /* ── Brightness / Cover sliders ── */
-    .slider-row {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 10px;
-      align-items: center;
-      margin-top: 2px;
-    }
-
-    .slider-label {
-      font-size: 0.85rem;
-      font-weight: 600;
-      min-width: 36px;
-      text-align: right;
-    }
-
-    input[type="range"] {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 100%;
-      height: 6px;
-      border-radius: 3px;
-      background: color-mix(in srgb, var(--divider-color, #444) 60%, transparent);
-      outline: none;
-    }
-
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: var(--card-accent);
-      cursor: pointer;
-      border: 2px solid var(--panel-bg);
-      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-    }
-
-    input[type="range"]::-moz-range-thumb {
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: var(--card-accent);
-      cursor: pointer;
-      border: 2px solid var(--panel-bg);
-      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-    }
-
-    /* ── Climate ── */
-    .climate-body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      padding: 2px 0 0;
-    }
-
-    .climate-dial {
-      width: min(206px, 100%);
-      aspect-ratio: 1;
-      border-radius: 50%;
-      position: relative;
-      display: grid;
-      place-items: center;
-      background: color-mix(in srgb, var(--divider-color, #444) 18%, transparent);
-      overflow: hidden;
-      touch-action: none;
-      cursor: pointer;
-    }
-
-    .climate-arc {
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-    }
-
-    .climate-arc-track,
-    .climate-arc-fill {
-      fill: none;
-      stroke-width: 10;
-      stroke-linecap: round;
-    }
-
-    .climate-arc-track {
-      stroke: color-mix(in srgb, var(--divider-color, #444) 62%, transparent);
-    }
-
-    .climate-arc-fill {
-      stroke: var(--card-accent);
-    }
-
-    .climate-dial::before {
-      content: "";
-      position: absolute;
-      inset: 22px;
-      border-radius: 50%;
-      background: var(--panel-bg);
-      z-index: 1;
-    }
-
-    .climate-dot {
-      position: absolute;
-      z-index: 4;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      background: #fff;
-      border: 2px solid var(--card-accent);
-      box-shadow: 0 0 0 2px color-mix(in srgb, var(--panel-bg) 80%, transparent), 0 2px 8px rgba(0, 0, 0, 0.35);
-    }
-
-    .climate-center {
-      position: relative;
-      z-index: 3;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      text-align: center;
-      margin-top: -8px;
-    }
-
-    .climate-mode-label {
-      font-size: 0.95rem;
-      font-weight: 700;
-      text-transform: capitalize;
-      color: var(--text-primary);
-      letter-spacing: 0.01em;
-    }
-
-    .climate-temp {
-      font-size: 3.2rem;
-      font-weight: 800;
-      line-height: 1;
-      letter-spacing: -0.03em;
-    }
-
-    .climate-setpoint {
-      font-size: 1.1rem;
-      font-weight: 700;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      color: color-mix(in srgb, var(--card-accent) 70%, #fff 30%);
-    }
-
-    .climate-setpoint ha-icon {
-      --mdc-icon-size: 15px;
-      color: var(--text-secondary);
-    }
-
-    .mode-row {
-      display: flex;
-      gap: 0;
-      width: 100%;
-      margin-top: 4px;
-      border-radius: 12px;
-      overflow: hidden;
-      background: color-mix(in srgb, var(--divider-color, #444) 36%, transparent);
-      border: 1px solid color-mix(in srgb, var(--divider-color, #444) 52%, transparent);
-    }
-
-    .mode-btn {
-      border: 0;
-      border-radius: 0;
-      padding: 7px 6px;
-      font-size: 0.74rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background 0.15s, color 0.15s, transform 0.15s;
-      background: transparent;
-      color: var(--text-primary);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      text-transform: capitalize;
-      flex: 1 1 0;
-      min-width: 0;
-      border-right: 1px solid color-mix(in srgb, var(--divider-color, #444) 55%, transparent);
-    }
-
-    .mode-btn:last-child {
-      border-right: none;
-    }
-
-    .mode-btn ha-icon {
-      --mdc-icon-size: 16px;
-    }
-
-    .mode-btn.active {
-      background: var(--card-accent);
-      color: #fff;
-      transform: none;
-    }
-
-    /* ── Media ── */
-    .media-row {
-      display: grid;
-      grid-template-columns: 48px 1fr auto;
-      gap: 10px;
-      align-items: center;
-      cursor: pointer;
-    }
-
-    .thumb {
-      width: 48px;
-      height: 48px;
-      border-radius: 10px;
-      background: color-mix(in srgb, var(--card-accent) 30%, var(--panel-bg));
-      object-fit: cover;
-      flex-shrink: 0;
-    }
-
-    .media-info {
-      min-width: 0;
-    }
-
-    .media-title {
-      font-size: 0.92rem;
-      font-weight: 600;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .media-subtitle {
-      font-size: 0.78rem;
-      color: var(--text-secondary);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .media-play {
-      border: 0;
-      background: color-mix(in srgb, var(--divider-color, #444) 50%, transparent);
-      color: var(--text-primary);
-      border-radius: 50%;
-      width: 36px;
-      height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-
-    .media-play:hover {
-      background: var(--card-accent);
-      color: #fff;
-    }
-
-    /* ── Sensors ── */
-    .sensor-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .sensor-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      border-radius: 999px;
-      padding: 5px 10px;
-      font-size: 0.78rem;
-      font-weight: 500;
-      background: color-mix(in srgb, var(--divider-color, #444) 40%, transparent);
-      color: var(--text-primary);
-      max-width: 100%;
-    }
-
-    .sensor-chip ha-icon {
-      --mdc-icon-size: 14px;
-    }
-
-    .chip-label {
-      color: var(--text-secondary);
-      white-space: nowrap;
-    }
-
-    .chip-value {
-      font-weight: 700;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .sensor-chip.extra {
-      border-radius: 12px;
-      background: color-mix(in srgb, var(--divider-color, #444) 52%, transparent);
-    }
-
-    /* ── Shades ── */
-    .shade-row {
-      display: grid;
-      grid-template-columns: 24px auto 1fr 24px;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 0;
-      cursor: pointer;
-    }
-
-    .shade-row ha-icon {
-      --mdc-icon-size: 20px;
-    }
-
-    .shade-row .chevron {
-      --mdc-icon-size: 18px;
-      color: var(--text-secondary);
-    }
-
-    .shade-position {
-      font-size: 0.92rem;
-      font-weight: 600;
-    }
-
-    .shade-slider-wrap {
-      display: grid;
-      grid-template-columns: 24px 1fr auto;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .shade-slider-wrap ha-icon {
-      --mdc-icon-size: 20px;
-      color: var(--card-accent);
-    }
-
-    /* ── Footer ── */
-    .footer-bar {
-      display: flex;
-      width: 100%;
-      margin-top: 10px;
-      overflow: hidden;
-      border-radius: 12px;
-      background: color-mix(in srgb, var(--divider-color, #444) 36%, transparent);
-      border: 1px solid color-mix(in srgb, var(--divider-color, #444) 52%, transparent);
-    }
-
-    .footer-btn {
-      flex: 1 1 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      padding: 8px 6px;
-      border: none;
-      background: transparent;
-      color: var(--text-primary);
-      cursor: pointer;
-      font-size: 0.74rem;
-      font-weight: 700;
-      transition: background 0.15s, color 0.15s;
-      border-right: 1px solid color-mix(in srgb, var(--divider-color, #444) 55%, transparent);
-      min-width: 0;
-    }
-
-    .footer-btn:last-child {
-      border-right: none;
-    }
-
-    .footer-btn:active {
-      background: color-mix(in srgb, var(--card-accent) 28%, transparent);
-    }
-
-    .footer-btn ha-icon {
-      --mdc-icon-size: 20px;
-    }
-
-    .footer-btn .footer-btn-text {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 100%;
-      padding: 0 2px;
-    }
-
-    .footer-btn.is-on {
-      background: var(--card-accent);
-      color: #fff;
-    }
-
-    .footer-btn.is-on ha-icon {
-      color: #fff;
-    }
-
-    /* ── Responsive ── */
-    @media (max-width: 600px) {
-      ha-card {
-        padding: 14px;
-      }
-
-      .grid {
-        grid-template-columns: 1fr;
-      }
-
-      .header {
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-      }
-
-      .title {
-        grid-column: 1 / -1;
-        grid-row: 1;
-        text-align: left;
-        font-size: 1.25rem;
-      }
-
-      .clock {
-        grid-row: 2;
-      }
-
-      .weather {
-        grid-row: 2;
-        justify-self: end;
-      }
-
-      .climate-temp {
-        font-size: 2.6rem;
-      }
-    }
-  `;
+TechArtRoomCard.styles = cardStyles;
 __decorate([
     n({ attribute: false })
 ], TechArtRoomCard.prototype, "hass", void 0);
@@ -1659,131 +1809,7 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
     `;
     }
 };
-TechArtRoomCardEditor.styles = i$3 `
-    .editor-container {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .section {
-      border: 1px solid var(--divider-color);
-      border-radius: 8px;
-      padding: 12px;
-    }
-    .section-title {
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 12px;
-      color: var(--primary-text-color);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .form-row {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      margin-bottom: 12px;
-    }
-    .form-row:last-child {
-      margin-bottom: 0;
-    }
-    label {
-      font-size: 12px;
-      color: var(--secondary-text-color);
-      font-weight: 400;
-    }
-    ha-entity-picker {
-      width: 100%;
-      display: block;
-    }
-    input {
-      background: var(--card-background-color);
-      border: 1px solid var(--divider-color);
-      border-radius: 4px;
-      padding: 8px 12px;
-      font-size: 14px;
-      color: var(--primary-text-color);
-      width: 100%;
-      box-sizing: border-box;
-    }
-    input:focus {
-      outline: none;
-      border-color: var(--primary-color);
-    }
-    .light-entities {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .light-entity-row {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 6px;
-      align-items: center;
-    }
-    .extra-entity-row {
-      display: grid;
-      grid-template-columns: 1fr 92px auto;
-      gap: 6px;
-      align-items: center;
-    }
-    .precision-input {
-      background: var(--card-background-color);
-      border: 1px solid var(--divider-color);
-      border-radius: 4px;
-      padding: 8px 10px;
-      font-size: 13px;
-      color: var(--primary-text-color);
-      width: 100%;
-      box-sizing: border-box;
-    }
-    .remove-btn {
-      border: 0;
-      background: color-mix(in srgb, var(--error-color, #f44336) 15%, transparent);
-      color: var(--error-color, #f44336);
-      border-radius: 4px;
-      padding: 6px 10px;
-      cursor: pointer;
-      font-size: 13px;
-      white-space: nowrap;
-    }
-    .add-btn {
-      border: 1px dashed var(--divider-color);
-      background: transparent;
-      color: var(--primary-color);
-      border-radius: 4px;
-      padding: 8px;
-      cursor: pointer;
-      font-size: 13px;
-      width: 100%;
-      margin-top: 4px;
-    }
-    .footer-btn-editor {
-      border: 1px solid var(--divider-color);
-      border-radius: 6px;
-      padding: 10px;
-      margin-bottom: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .footer-btn-editor-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--secondary-text-color);
-    }
-    .footer-btn-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-    .footer-btn-grid .form-row {
-      margin-bottom: 0;
-    }
-  `;
+TechArtRoomCardEditor.styles = editorStyles;
 __decorate([
     n({ attribute: false })
 ], TechArtRoomCardEditor.prototype, "hass", void 0);
