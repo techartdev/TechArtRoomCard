@@ -1,39 +1,95 @@
 # TechArt Home Assistant Room Card
 
-A dynamic Home Assistant Lovelace room cockpit card with a native HA look and configurable sections.
+A Lovelace room dashboard card with a native Home Assistant look, visual editor support, and dynamic sections.
 
-<img width="1057" height="648" alt="image" src="https://github.com/user-attachments/assets/e37dc940-acf1-4750-9b85-350d2210f3fc" />
+<img width="1046" height="613" alt="image" src="https://github.com/user-attachments/assets/922e2701-8765-4b0d-b817-ad1d1da1de92" />
 
+## What it can do
 
-## Highlights
+- 2-column room layout with sections for **Lights**, **Climate**, **Media**, **Sensors & Power**, and **Shades**
+- Native Lovelace editor with clearable `ha-selector` entity pickers
+- Dynamic rendering (sections/rows hide automatically when entities are missing)
+- Draggable climate dial with HVAC mode strip
+- Climate fallback display when no thermostat is configured
+- User-defined footer action buttons (entity, icon, off-icon, label)
+- Per-section custom titles via `section_titles`
+- Sensor formatting with default **2 decimal places** and optional per-extra override
 
-- 2-column room hub layout (header, lights, climate, media, sensors/power, shades)
-- Dynamic section rendering: hides panels or rows when configured entities are missing/unavailable
-- Climate fallback support (show any alternate entity when no HVAC entity is wired)
-- Built-in card editor for common entity mapping (visual UI in Lovelace editor)
-- Native-style rounded surfaces, spacing, dividers, and accent usage
+---
 
-## Installation
+## Quick setup (recommended)
 
-### HACS (Recommended)
+### Option A: HACS
 
-1. Open HACS in Home Assistant.
-2. Go to **Frontend** → **Custom repositories**.
-3. Add `https://github.com/techartdev/TechArtRoomCard` as **Lovelace**.
-4. Install **TechArt Room Card**.
-5. Reload browser.
+1. Open **HACS** in Home Assistant
+2. Go to **Frontend** → **Custom repositories**
+3. Add: `https://github.com/techartdev/TechArtRoomCard` (Category: **Lovelace**)
+4. Install **TechArt Room Card**
+5. Reload Home Assistant frontend (hard refresh recommended)
 
-### Manual
+### Option B: Manual
 
-1. Build/download `tech-art-room-card.js`.
-2. Copy to `config/www`.
-3. Add resource `/local/tech-art-room-card.js` as JavaScript module.
+1. Download/build `tech-art-room-card.js`
+2. Copy it to: `config/www/tech-art-room-card.js`
+3. Add Lovelace resource:
 
-## Example configuration
+```yaml
+url: /local/tech-art-room-card.js
+type: module
+```
+
+---
+
+## Add card in Lovelace
+
+```yaml
+type: custom:tech-art-room-card
+title: Room
+```
+
+Then open the visual card editor and map entities.
+
+---
+
+## Use case examples
+
+### 1) Minimal room card
+
+```yaml
+type: custom:tech-art-room-card
+title: Hallway
+header:
+  show_clock: true
+  show_weather: true
+```
+
+### 2) Room without thermostat (climate fallback)
+
+Use any sensor in the climate panel when no `climate.entity` exists.
+
+```yaml
+type: custom:tech-art-room-card
+title: Corridor
+climate:
+  fallback_entity: sensor.master_meter_usage
+sensors:
+  power_entity: sensor.master_switch_power
+  extras:
+    - entity: sensor.master_switch_current
+    - entity: sensor.master_switch_temperature
+```
+
+### 3) Full room dashboard
 
 ```yaml
 type: custom:tech-art-room-card
 title: Living Room
+section_titles:
+  lights: Lighting
+  climate: Air Control
+  media: Entertainment
+  sensors: Environment
+  shades: Blinds
 header:
   show_clock: true
   show_weather: true
@@ -41,20 +97,14 @@ header:
   outdoor_temp_entity: sensor.outdoor_temperature
 lights:
   entities:
-    - light.living_room_lamp
     - light.living_room_ceiling
-  brightness_entity: light.living_room_lights
+    - light.living_room_lamp
+  brightness_entity: light.living_room_ceiling
 climate:
   entity: climate.living_room
-  fallback_entity: sensor.living_room_comfort_index
+  fallback_entity: sensor.living_room_temperature
 media:
   entity: media_player.living_room_tv
-section_titles:
-  lights: Lighting
-  climate: Air Control
-  media: Entertainment
-  sensors: Environment
-  shades: Blinds
 sensors:
   air_quality_entity: sensor.living_room_air_quality
   pm25_entity: sensor.living_room_pm25
@@ -63,20 +113,37 @@ sensors:
     - entity: sensor.living_room_humidity
       name: Humidity
       precision: 1
+    - entity: sensor.living_room_co2
+      name: CO2
 shades:
   entity: cover.living_room_shade
   secondary_entity: cover.living_room_shade_right
-  power_entity: sensor.living_room_shade_power
+  power_entity: sensor.shade_power
+  fallback_entity: sensor.shade_temperature
+footer:
+  - entity: fan.air_purifier
+    text: Air Purifier
+    icon: mdi:fan
+    off_icon: mdi:fan-off
+  - entity: switch.air_purifier_lock
+    text: Child Lock
+    icon: mdi:lock
+    off_icon: mdi:lock-open-variant
 ```
+
+---
 
 ## Configuration notes
 
-- If `climate.entity` is absent/unavailable and `climate.fallback_entity` exists, fallback is shown instead of HVAC controls.
-- Lights/media/sensors/shades panels are hidden automatically when configured entities are missing.
-- Sensor values default to 2 decimal places across the card (including shades sensor rows).
-- `sensors.extras[].precision` is optional and overrides decimal places (0-4) for extra sensor value display.
-- `section_titles` is optional and lets you override panel titles (`lights`, `climate`, `media`, `sensors`, `shades`).
-- Use Lovelace visual card editor for common fields (title, weather/temp, lights, climate, media, sensors, shades).
+- Default card title is **Room** (generic by default for new installs)
+- Stub config does not pre-fill fake entities
+- `section_titles` is optional (`lights`, `climate`, `media`, `sensors`, `shades`)
+- If `climate.entity` is unavailable and `climate.fallback_entity` exists, fallback is shown
+- Sensor values default to **2 decimals** across the card (including shades sensor rows)
+- `sensors.extras[].precision` can override decimals per extra sensor (`0-4`)
+- Footer buttons toggle common toggle domains (`switch`, `light`, `fan`, `input_boolean`, `automation`, `script`) and open more-info for other domains
+
+---
 
 ## Development
 

@@ -150,7 +150,7 @@ export class TechArtRoomCard extends LitElement {
     // Merge config with defaults (user config takes precedence)
     this._config = {
       type: config.type,
-      title: config.title ?? "Living Room",
+      title: config.title ?? "Room",
       section_titles: {
         lights: config.section_titles?.lights,
         climate: config.section_titles?.climate,
@@ -186,18 +186,8 @@ export class TechArtRoomCard extends LitElement {
   static getStubConfig(): RoomCardConfig {
     return {
       type: "custom:tech-art-room-card",
-      title: "Living Room",
+      title: "Room",
       header: { show_clock: true, show_weather: true },
-      lights: { entities: ["light.living_room_lamp", "light.living_room_ceiling"] },
-      climate: { entity: "climate.living_room" },
-      media: { entity: "media_player.living_room_tv" },
-      sensors: {
-        air_quality_entity: "sensor.living_room_air_quality",
-        pm25_entity: "sensor.living_room_pm25",
-        power_entity: "sensor.living_room_power",
-        extras: [{ entity: "sensor.living_room_humidity", name: "Humidity", precision: 1 }],
-      },
-      shades: { entity: "cover.living_room_shade" },
     };
   }
 
@@ -920,7 +910,7 @@ export class TechArtRoomCardEditor extends LitElement {
       <div class="editor-container">
         <div class="form-row">
           <label>Room title</label>
-          <input .value=${this._value("title", "Living Room")} @input=${(e: Event) => this._emit("title", (e.target as HTMLInputElement).value)} />
+          <input .value=${this._value("title", "Room")} @input=${(e: Event) => this._emit("title", (e.target as HTMLInputElement).value)} />
         </div>
 
         <div class="section">
