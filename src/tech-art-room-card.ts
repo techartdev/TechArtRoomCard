@@ -649,7 +649,8 @@ export class TechArtRoomCard extends LitElement {
               <button
                 class="mode-btn ${mode === active ? "active" : ""}"
                 @click=${() => this._setHvacMode(climate.entity_id, mode)}
-              ><ha-icon icon=${this._hvacIcon(mode)}></ha-icon>${mode.replace("_", " ")}</button>
+                title=${mode.replace("_", " ")}
+              ><ha-icon icon=${this._hvacIcon(mode)}></ha-icon><span class="mode-label">${mode.replace("_", " ")}</span></button>
             `
           )}
         </div>

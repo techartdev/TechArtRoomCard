@@ -331,10 +331,32 @@ export const cardStyles = css`
     --mdc-icon-size: 16px;
   }
 
+  .mode-btn .mode-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .mode-btn.active {
     background: var(--card-accent);
     color: #fff;
     transform: none;
+  }
+
+  @media (max-width: 430px) {
+    .mode-btn {
+      padding: 8px 4px;
+      gap: 0;
+    }
+
+    .mode-btn .mode-label {
+      display: none;
+    }
+
+    .mode-btn ha-icon {
+      --mdc-icon-size: 18px;
+    }
   }
 
   /* ── Media ── */

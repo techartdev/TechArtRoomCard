@@ -403,10 +403,32 @@ const cardStyles = i$3 `
     --mdc-icon-size: 16px;
   }
 
+  .mode-btn .mode-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .mode-btn.active {
     background: var(--card-accent);
     color: #fff;
     transform: none;
+  }
+
+  @media (max-width: 430px) {
+    .mode-btn {
+      padding: 8px 4px;
+      gap: 0;
+    }
+
+    .mode-btn .mode-label {
+      display: none;
+    }
+
+    .mode-btn ha-icon {
+      --mdc-icon-size: 18px;
+    }
   }
 
   /* ── Media ── */
@@ -765,7 +787,7 @@ const editorStyles = i$3 `
   }
 `;
 
-const CARD_VERSION = "0.1.21";
+const CARD_VERSION = "0.1.22";
 let TechArtRoomCard = class TechArtRoomCard extends i {
     setConfig(config) {
         if (!config?.type) {
@@ -1257,7 +1279,8 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
               <button
                 class="mode-btn ${mode === active ? "active" : ""}"
                 @click=${() => this._setHvacMode(climate.entity_id, mode)}
-              ><ha-icon icon=${this._hvacIcon(mode)}></ha-icon>${mode.replace("_", " ")}</button>
+                title=${mode.replace("_", " ")}
+              ><ha-icon icon=${this._hvacIcon(mode)}></ha-icon><span class="mode-label">${mode.replace("_", " ")}</span></button>
             `)}
         </div>
       </section>
