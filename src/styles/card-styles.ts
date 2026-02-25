@@ -231,12 +231,9 @@ export const cardStyles = css`
   .climate-dial {
     width: min(206px, 100%);
     aspect-ratio: 1;
-    border-radius: 50%;
     position: relative;
     display: grid;
     place-items: center;
-    background: color-mix(in srgb, var(--divider-color, #444) 18%, transparent);
-    overflow: hidden;
     touch-action: none;
     cursor: pointer;
   }
@@ -244,62 +241,12 @@ export const cardStyles = css`
   .climate-arc {
     position: absolute;
     inset: 0;
-    z-index: 0;
-  }
-
-  .climate-arc-track,
-  .climate-arc-fill {
-    fill: none;
-    stroke-width: 10;
-    stroke-linecap: round;
-  }
-
-  .climate-arc-track {
-    stroke: color-mix(in srgb, var(--divider-color, #444) 62%, transparent);
-  }
-
-  .climate-arc-fill {
-    stroke: var(--card-accent);
-    stroke-linecap: butt;
-  }
-
-  .climate-dial::before {
-    content: "";
-    position: absolute;
-    inset: 22px;
-    border-radius: 50%;
-    background: var(--panel-bg);
-    z-index: 1;
-  }
-
-  .climate-dot {
-    position: absolute;
-    z-index: 4;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    background: #fff;
-    border: 2px solid var(--card-accent);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--panel-bg) 80%, transparent), 0 2px 8px rgba(0, 0, 0, 0.35);
-  }
-
-  .climate-current-dot {
-    position: absolute;
-    z-index: 4;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    background: color-mix(in srgb, #fff 88%, var(--card-accent) 12%);
-    border: 1px solid color-mix(in srgb, var(--panel-bg) 75%, transparent);
-    opacity: 0.9;
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--panel-bg) 80%, transparent);
+    overflow: visible;
   }
 
   .climate-center {
     position: relative;
-    z-index: 3;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     align-items: center;

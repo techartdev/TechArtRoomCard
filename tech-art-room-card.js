@@ -303,12 +303,9 @@ const cardStyles = i$3 `
   .climate-dial {
     width: min(206px, 100%);
     aspect-ratio: 1;
-    border-radius: 50%;
     position: relative;
     display: grid;
     place-items: center;
-    background: color-mix(in srgb, var(--divider-color, #444) 18%, transparent);
-    overflow: hidden;
     touch-action: none;
     cursor: pointer;
   }
@@ -316,62 +313,12 @@ const cardStyles = i$3 `
   .climate-arc {
     position: absolute;
     inset: 0;
-    z-index: 0;
-  }
-
-  .climate-arc-track,
-  .climate-arc-fill {
-    fill: none;
-    stroke-width: 10;
-    stroke-linecap: round;
-  }
-
-  .climate-arc-track {
-    stroke: color-mix(in srgb, var(--divider-color, #444) 62%, transparent);
-  }
-
-  .climate-arc-fill {
-    stroke: var(--card-accent);
-    stroke-linecap: butt;
-  }
-
-  .climate-dial::before {
-    content: "";
-    position: absolute;
-    inset: 22px;
-    border-radius: 50%;
-    background: var(--panel-bg);
-    z-index: 1;
-  }
-
-  .climate-dot {
-    position: absolute;
-    z-index: 4;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    background: #fff;
-    border: 2px solid var(--card-accent);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--panel-bg) 80%, transparent), 0 2px 8px rgba(0, 0, 0, 0.35);
-  }
-
-  .climate-current-dot {
-    position: absolute;
-    z-index: 4;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    background: color-mix(in srgb, #fff 88%, var(--card-accent) 12%);
-    border: 1px solid color-mix(in srgb, var(--panel-bg) 75%, transparent);
-    opacity: 0.9;
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--panel-bg) 80%, transparent);
+    overflow: visible;
   }
 
   .climate-center {
     position: relative;
-    z-index: 3;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1191,22 +1138,27 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         const normalizedRange = Math.max(0.0001, maxTarget - minTarget);
         const progress = Math.max(0, Math.min(1, (interactiveTarget - minTarget) / normalizedRange));
         const currentProgress = Math.max(0, Math.min(1, (clampedCurrent - minTarget) / normalizedRange));
+        const CX = 50, CY = 50;
         const startDeg = 150;
         const sweepDeg = 240;
-        const radius = 41;
-        const arcLength = 2 * Math.PI * radius * (sweepDeg / 360);
-        const fillLength = arcLength * progress;
-        const hasFill = fillLength > 0.15;
+        const R = 41;
+        const strokeW = 9;
+        const innerR = R - strokeW / 2 - 1.5;
+        const toRad = (d) => (d * Math.PI) / 180;
+        const px = (deg) => CX + Math.cos(toRad(deg)) * R;
+        const py = (deg) => CY + Math.sin(toRad(deg)) * R;
         const endDeg = startDeg + sweepDeg;
-        const arcPath = `M ${50 + Math.cos((startDeg * Math.PI) / 180) * radius} ${50 + Math.sin((startDeg * Math.PI) / 180) * radius} A ${radius} ${radius} 0 1 1 ${50 + Math.cos((endDeg * Math.PI) / 180) * radius} ${50 + Math.sin((endDeg * Math.PI) / 180) * radius}`;
+        const largArc = 1 ;
+        const arcPath = `M ${px(startDeg).toFixed(3)} ${py(startDeg).toFixed(3)} A ${R} ${R} 0 ${largArc} 1 ${px(endDeg - 0.001).toFixed(3)} ${py(endDeg - 0.001).toFixed(3)}`;
+        const arcLength = 2 * Math.PI * R * (sweepDeg / 360);
+        const fillLength = arcLength * progress;
+        const hasFill = fillLength > 0.5;
         const dotAngleDeg = startDeg + progress * sweepDeg;
-        const dotRadians = (dotAngleDeg * Math.PI) / 180;
-        const dotX = 50 + Math.cos(dotRadians) * radius;
-        const dotY = 50 + Math.sin(dotRadians) * radius;
+        const dotX = px(dotAngleDeg);
+        const dotY = py(dotAngleDeg);
         const currentAngleDeg = startDeg + currentProgress * sweepDeg;
-        const currentRadians = (currentAngleDeg * Math.PI) / 180;
-        const currentDotX = 50 + Math.cos(currentRadians) * radius;
-        const currentDotY = 50 + Math.sin(currentRadians) * radius;
+        const currentDotX = px(currentAngleDeg);
+        const currentDotY = py(currentAngleDeg);
         return b `
       <section class="panel">
         <div class="panel-title">Climate</div>
@@ -1218,12 +1170,48 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
             @pointerup=${this._onClimateDialPointerEnd}
             @pointercancel=${this._onClimateDialPointerEnd}
           >
-            <svg class="climate-arc" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-              <path class="climate-arc-track" d=${arcPath}></path>
-              <path class="climate-arc-fill" d=${arcPath} style=${`stroke-dasharray: ${fillLength} ${arcLength}; opacity: ${hasFill ? 1 : 0};`}></path>
+            <svg class="climate-arc" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+              <circle cx=${CX} cy=${CY} r="50" fill="color-mix(in srgb, var(--divider-color, #444) 18%, transparent)"></circle>
+              <path
+                fill="none"
+                stroke="color-mix(in srgb, var(--divider-color, #444) 62%, transparent)"
+                stroke-width=${strokeW}
+                stroke-linecap="round"
+                d=${arcPath}
+              ></path>
+              ${hasFill ? b `<path
+                fill="none"
+                stroke="var(--card-accent)"
+                stroke-width=${strokeW}
+                stroke-linecap="butt"
+                stroke-dasharray=${`${fillLength} ${arcLength}`}
+                d=${arcPath}
+              ></path>` : A}
+              ${hasFill ? b `<circle
+                cx=${dotX.toFixed(3)}
+                cy=${dotY.toFixed(3)}
+                r="5"
+                fill="var(--card-accent)"
+                stroke-linecap="round"
+              ></circle>` : A}
+              <circle
+                cx=${dotX.toFixed(3)}
+                cy=${dotY.toFixed(3)}
+                r="4"
+                fill="white"
+                stroke="var(--card-accent)"
+                stroke-width="1.5"
+              ></circle>
+              <circle cx=${CX} cy=${CY} r=${innerR.toFixed(3)} fill="var(--panel-bg)"></circle>
+              <circle
+                cx=${currentDotX.toFixed(3)}
+                cy=${currentDotY.toFixed(3)}
+                r="3"
+                fill="rgba(255,255,255,0.75)"
+                stroke="rgba(255,255,255,0.3)"
+                stroke-width="1"
+              ></circle>
             </svg>
-            <span class="climate-current-dot" style="left:${currentDotX}%; top:${currentDotY}%;" title="Current ${Math.round(currentTemp)}°"></span>
-            <span class="climate-dot" style="left:${dotX}%; top:${dotY}%;"></span>
             <div class="climate-center">
               <span class="climate-mode-label">${active}</span>
               <span class="climate-temp">${Math.round(currentTemp)}°</span>
