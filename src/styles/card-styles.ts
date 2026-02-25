@@ -276,7 +276,7 @@ export const cardStyles = css`
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    color: color-mix(in srgb, var(--card-accent) 70%, #fff 30%);
+    color: var(--card-accent);
   }
 
   .climate-setpoint ha-icon {

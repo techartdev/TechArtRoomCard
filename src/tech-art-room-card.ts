@@ -524,9 +524,9 @@ export class TechArtRoomCard extends LitElement {
     const CX = 50, CY = 50;
     const startDeg = 210;
     const sweepDeg = 240;
-    const R = 41;
-    const strokeW = 9;
-    const innerR = R - strokeW / 2 - 1.5;
+    const R = 43;
+    const strokeW = 8;
+    const innerR = R - strokeW / 2;
     const toRad = (d: number) => (d * Math.PI) / 180;
     const px = (deg: number) => CX + Math.cos(toRad(deg)) * R;
     const py = (deg: number) => CY + Math.sin(toRad(deg)) * R;
@@ -556,10 +556,11 @@ export class TechArtRoomCard extends LitElement {
             @pointercancel=${this._onClimateDialPointerEnd}
           >
             <svg class="climate-arc" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-              <circle cx=${CX} cy=${CY} r="50" fill="color-mix(in srgb, var(--divider-color, #444) 18%, transparent)"></circle>
+              <circle cx=${CX} cy=${CY} r=${(R + strokeW / 2).toFixed(3)} fill="color-mix(in srgb, var(--divider-color, #444) 14%, transparent)"></circle>
+              <circle cx=${CX} cy=${CY} r=${innerR.toFixed(3)} fill="var(--panel-bg)"></circle>
               <path
                 fill="none"
-                stroke="color-mix(in srgb, var(--divider-color, #444) 62%, transparent)"
+                stroke="color-mix(in srgb, var(--divider-color, #444) 50%, transparent)"
                 stroke-width=${strokeW}
                 stroke-linecap="round"
                 d=${arcPath}
@@ -572,21 +573,21 @@ export class TechArtRoomCard extends LitElement {
                 stroke-dasharray=${`${fillLength} ${arcLength}`}
                 d=${arcPath}
               ></path>` : nothing}
-              <circle cx=${CX} cy=${CY} r=${innerR.toFixed(3)} fill="var(--panel-bg)"></circle>
               <circle
                 cx=${currentDotX.toFixed(3)}
                 cy=${currentDotY.toFixed(3)}
-                r="3"
-                fill="rgba(255,255,255,0.65)"
-                stroke="none"
+                r="3.5"
+                fill="rgba(255,255,255,0.6)"
+                stroke="rgba(0,0,0,0.15)"
+                stroke-width="0.5"
               ></circle>
               <circle
                 cx=${dotX.toFixed(3)}
                 cy=${dotY.toFixed(3)}
-                r="6"
+                r=${(strokeW / 2 + 0.5).toFixed(1)}
                 fill="white"
                 stroke="var(--card-accent)"
-                stroke-width="2"
+                stroke-width="1.5"
               ></circle>
             </svg>
             <div class="climate-center">
