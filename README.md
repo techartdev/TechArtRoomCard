@@ -28,7 +28,7 @@ A Lovelace room dashboard card with a native Home Assistant look, visual editor 
 
 1. Open **HACS** in Home Assistant
 2. Go to **Frontend** → **Custom repositories**
-3. Add: `https://github.com/techartdev/TechArtRoomCard` (Category: **Lovelace**)
+3. Add: `https://github.com/techartdev/TechArtRoomCard` (Category: **Dashboard**)
 4. Install **TechArt Room Card**
 5. Reload Home Assistant frontend (hard refresh recommended)
 
