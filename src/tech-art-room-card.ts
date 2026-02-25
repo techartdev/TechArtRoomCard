@@ -195,6 +195,25 @@ export class TechArtRoomCard extends LitElement {
     return document.createElement("tech-art-room-card-editor");
   }
 
+  // Helps Lovelace masonry layout reserve enough vertical space for variable-height content.
+  public getCardSize(): number {
+    const card = this.shadowRoot?.querySelector("ha-card") as HTMLElement | null;
+    if (!card) return 8;
+    return Math.max(3, Math.ceil(card.getBoundingClientRect().height / 50));
+  }
+
+  // Helps Lovelace sections layout size this custom card based on rendered height.
+  public getGridOptions(): { rows: number; columns: number; min_rows: number } {
+    const card = this.shadowRoot?.querySelector("ha-card") as HTMLElement | null;
+    const height = card?.getBoundingClientRect().height ?? 420;
+    const rows = Math.max(6, Math.ceil(height / 56));
+    return {
+      columns: 12,
+      rows,
+      min_rows: rows,
+    };
+  }
+
   private _e(entityId?: string): HassEntity | undefined {
     if (!entityId) return undefined;
     return this.hass?.states?.[entityId];

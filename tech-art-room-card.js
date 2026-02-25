@@ -765,7 +765,7 @@ const editorStyles = i$3 `
   }
 `;
 
-const CARD_VERSION = "0.1.20";
+const CARD_VERSION = "0.1.21";
 let TechArtRoomCard = class TechArtRoomCard extends i {
     setConfig(config) {
         if (!config?.type) {
@@ -850,6 +850,24 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
     }
     static getConfigElement() {
         return document.createElement("tech-art-room-card-editor");
+    }
+    // Helps Lovelace masonry layout reserve enough vertical space for variable-height content.
+    getCardSize() {
+        const card = this.shadowRoot?.querySelector("ha-card");
+        if (!card)
+            return 8;
+        return Math.max(3, Math.ceil(card.getBoundingClientRect().height / 50));
+    }
+    // Helps Lovelace sections layout size this custom card based on rendered height.
+    getGridOptions() {
+        const card = this.shadowRoot?.querySelector("ha-card");
+        const height = card?.getBoundingClientRect().height ?? 420;
+        const rows = Math.max(6, Math.ceil(height / 56));
+        return {
+            columns: 12,
+            rows,
+            min_rows: rows,
+        };
     }
     _e(entityId) {
         if (!entityId)
