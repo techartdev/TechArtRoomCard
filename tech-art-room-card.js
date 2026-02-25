@@ -72,7 +72,7 @@ const t=t=>(e,o)=>{ void 0!==o?o.addInitializer(()=>{customElements.define(t,e);
  * SPDX-License-Identifier: BSD-3-Clause
  */function r(r){return n({...r,state:true,attribute:false})}
 
-const CARD_VERSION = "0.1.15";
+const CARD_VERSION = "0.1.16";
 let TechArtRoomCard = class TechArtRoomCard extends i {
     setConfig(config) {
         if (!config?.type) {
@@ -90,6 +90,29 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         else if (typeof rawLights === "string" && rawLights.trim() !== "") {
             lightEntities = rawLights.split(",").map((v) => v.trim()).filter(Boolean);
         }
+        const rawExtras = config.sensors?.extras;
+        const parsedExtras = Array.isArray(rawExtras)
+            ? rawExtras
+                .map((item) => {
+                if (typeof item === "string") {
+                    const entity = item.trim();
+                    return entity ? { entity } : null;
+                }
+                if (!item || typeof item !== "object" || typeof item.entity !== "string")
+                    return null;
+                const entity = item.entity.trim();
+                if (!entity)
+                    return null;
+                const precisionNum = Number(item.precision);
+                return {
+                    entity,
+                    name: item.name,
+                    icon: item.icon,
+                    precision: Number.isFinite(precisionNum) ? precisionNum : undefined,
+                };
+            })
+                .filter((item) => !!item)
+            : [];
         // Merge config with defaults (user config takes precedence)
         this._config = {
             type: config.type,
@@ -106,7 +129,14 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
             },
             climate: config.climate,
             media: config.media,
-            sensors: config.sensors,
+            sensors: config.sensors
+                ? {
+                    air_quality_entity: config.sensors.air_quality_entity,
+                    pm25_entity: config.sensors.pm25_entity,
+                    power_entity: config.sensors.power_entity,
+                    extras: parsedExtras,
+                }
+                : undefined,
             shades: config.shades,
             footer: config.footer,
         };
@@ -123,6 +153,7 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
                 air_quality_entity: "sensor.living_room_air_quality",
                 pm25_entity: "sensor.living_room_pm25",
                 power_entity: "sensor.living_room_power",
+                extras: [{ entity: "sensor.living_room_humidity", name: "Humidity", precision: 1 }],
             },
             shades: { entity: "cover.living_room_shade" },
         };
@@ -186,6 +217,20 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
             heat_cool: "mdi:thermostat-auto",
         };
         return icons[mode] ?? "mdi:fan";
+    }
+    _formatNumber(value, precision) {
+        const normalized = Math.max(0, Math.min(4, Math.round(precision)));
+        return value.toFixed(normalized).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
+    }
+    _formatEntityValue(entity, precision) {
+        const numeric = Number(entity.state);
+        const unit = entity.attributes.unit_of_measurement ?? "";
+        if (!Number.isFinite(numeric)) {
+            return [entity.state, unit].filter(Boolean).join(" ").trim();
+        }
+        const autoPrecision = Math.abs(numeric) >= 100 ? 0 : Math.abs(numeric) >= 10 ? 1 : 2;
+        const formatted = this._formatNumber(numeric, precision ?? autoPrecision);
+        return [formatted, unit].filter(Boolean).join(" ").trim();
     }
     _footerAction(btn) {
         const entity = this._e(btn.entity);
@@ -339,13 +384,18 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         const safeTarget = Number.isFinite(target) ? target : 21;
         const clampedTarget = Math.min(maxTarget, Math.max(minTarget, safeTarget));
         const progress = (clampedTarget - minTarget) / (maxTarget - minTarget);
-        const filledDegrees = Math.round(progress * 240);
-        const dialGradient = `conic-gradient(from 210deg, var(--card-accent) 0deg ${filledDegrees}deg, color-mix(in srgb, var(--divider-color, #444) 60%, transparent) ${filledDegrees}deg 240deg, transparent 240deg 360deg)`;
+        const filledDegrees = Math.max(0, Math.min(240, Math.round(progress * 240)));
+        const dialGradient = `conic-gradient(from 210deg, var(--card-accent) 0deg ${filledDegrees}deg, color-mix(in srgb, var(--divider-color, #444) 60%, transparent) ${filledDegrees}deg 240deg, color-mix(in srgb, var(--divider-color, #444) 60%, transparent) 240deg 360deg)`;
+        const dotAngleDeg = 210 + filledDegrees;
+        const dotRadians = (dotAngleDeg * Math.PI) / 180;
+        const dotX = 50 + Math.cos(dotRadians) * 38;
+        const dotY = 50 + Math.sin(dotRadians) * 38;
         return b `
       <section class="panel">
         <div class="panel-title">Climate</div>
         <div class="climate-body">
           <div class="climate-dial" style="background: ${dialGradient};">
+            <span class="climate-dot" style="left:${dotX}%; top:${dotY}%;"></span>
             <div class="climate-center">
               <span class="climate-mode-label">${active}</span>
               <span class="climate-temp">${Math.round(currentTemp)}°</span>
@@ -414,12 +464,12 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
       <section class="panel">
         <div class="panel-title">Sensors & Power</div>
         <div class="sensor-chips">
-          ${aq ? b `<span class="sensor-chip"><ha-icon icon="mdi:air-filter"></ha-icon> Air Quality: ${aq.state}</span>` : A}
-          ${pm ? b `<span class="sensor-chip"><ha-icon icon="mdi:blur"></ha-icon> PM2.5: ${pm.state} ${pm.attributes.unit_of_measurement ?? ""}</span>` : A}
-          ${power ? b `<span class="sensor-chip"><ha-icon icon="mdi:flash"></ha-icon> ${power.state} ${power.attributes.unit_of_measurement ?? ""}</span>` : A}
+          ${aq ? b `<span class="sensor-chip"><ha-icon icon="mdi:air-filter"></ha-icon><span class="chip-label">Air Quality</span><span class="chip-value">${this._formatEntityValue(aq)}</span></span>` : A}
+          ${pm ? b `<span class="sensor-chip"><ha-icon icon="mdi:blur"></ha-icon><span class="chip-label">PM2.5</span><span class="chip-value">${this._formatEntityValue(pm, 1)}</span></span>` : A}
+          ${power ? b `<span class="sensor-chip"><ha-icon icon="mdi:flash"></ha-icon><span class="chip-label">Power</span><span class="chip-value">${this._formatEntityValue(power, 0)}</span></span>` : A}
           ${extras.map((item) => {
             const e = this._e(item.entity);
-            return b `<span class="sensor-chip">${item.name ?? this._name(item.entity)}: ${e.state} ${e.attributes.unit_of_measurement ?? ""}</span>`;
+            return b `<span class="sensor-chip extra"><span class="chip-label">${item.name ?? this._name(item.entity)}</span><span class="chip-value">${this._formatEntityValue(e, item.precision)}</span></span>`;
         })}
         </div>
       </section>
@@ -725,12 +775,12 @@ TechArtRoomCard.styles = i$3 `
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 10px;
-      padding: 4px 0 2px;
+      gap: 8px;
+      padding: 2px 0 0;
     }
 
     .climate-dial {
-      width: min(235px, 100%);
+      width: min(206px, 100%);
       aspect-ratio: 1;
       border-radius: 50%;
       position: relative;
@@ -743,7 +793,7 @@ TechArtRoomCard.styles = i$3 `
     .climate-dial::before {
       content: "";
       position: absolute;
-      inset: 24px;
+      inset: 21px;
       border-radius: 50%;
       background: var(--panel-bg);
       z-index: 1;
@@ -755,11 +805,23 @@ TechArtRoomCard.styles = i$3 `
       left: 10%;
       right: 10%;
       bottom: -3px;
-      height: 34%;
+      height: 35%;
       background: var(--panel-bg);
       border-top-left-radius: 100px;
       border-top-right-radius: 100px;
       z-index: 2;
+    }
+
+    .climate-dot {
+      position: absolute;
+      z-index: 4;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      border: 2px solid var(--card-accent);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--panel-bg) 80%, transparent), 0 2px 8px rgba(0, 0, 0, 0.35);
     }
 
     .climate-center {
@@ -804,32 +866,42 @@ TechArtRoomCard.styles = i$3 `
 
     .climate-slider {
       width: 100%;
-      margin-top: 2px;
+      margin-top: -1px;
     }
 
     .mode-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
-      gap: 7px;
+      display: flex;
+      gap: 0;
       width: 100%;
-      margin-top: 6px;
+      margin-top: 4px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: color-mix(in srgb, var(--divider-color, #444) 36%, transparent);
+      border: 1px solid color-mix(in srgb, var(--divider-color, #444) 52%, transparent);
     }
 
     .mode-btn {
       border: 0;
-      border-radius: 12px;
-      padding: 7px 10px;
-      font-size: 0.8rem;
+      border-radius: 0;
+      padding: 7px 6px;
+      font-size: 0.74rem;
       font-weight: 700;
       cursor: pointer;
       transition: background 0.15s, color 0.15s, transform 0.15s;
-      background: color-mix(in srgb, var(--divider-color, #444) 48%, transparent);
+      background: transparent;
       color: var(--text-primary);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 4px;
       text-transform: capitalize;
+      flex: 1 1 0;
+      min-width: 0;
+      border-right: 1px solid color-mix(in srgb, var(--divider-color, #444) 55%, transparent);
+    }
+
+    .mode-btn:last-child {
+      border-right: none;
     }
 
     .mode-btn ha-icon {
@@ -839,7 +911,7 @@ TechArtRoomCard.styles = i$3 `
     .mode-btn.active {
       background: var(--card-accent);
       color: #fff;
-      transform: translateY(-1px);
+      transform: none;
     }
 
     /* ── Media ── */
@@ -910,17 +982,36 @@ TechArtRoomCard.styles = i$3 `
     .sensor-chip {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
       border-radius: 999px;
-      padding: 4px 10px;
+      padding: 5px 10px;
       font-size: 0.78rem;
       font-weight: 500;
       background: color-mix(in srgb, var(--divider-color, #444) 40%, transparent);
       color: var(--text-primary);
+      max-width: 100%;
     }
 
     .sensor-chip ha-icon {
       --mdc-icon-size: 14px;
+    }
+
+    .chip-label {
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .chip-value {
+      font-weight: 700;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sensor-chip.extra {
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--divider-color, #444) 52%, transparent);
     }
 
     /* ── Shades ── */
@@ -1124,15 +1215,30 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
     }
     _extraEntities() {
         const raw = this._config?.sensors?.extras;
-        if (Array.isArray(raw))
-            return raw.map((item) => item.entity).filter(Boolean);
+        if (Array.isArray(raw)) {
+            return raw
+                .filter((item) => !!item && typeof item === "object" && typeof item.entity === "string")
+                .map((item) => ({
+                entity: item.entity,
+                name: item.name,
+                icon: item.icon,
+                precision: Number.isFinite(Number(item.precision)) ? Number(item.precision) : undefined,
+            }));
+        }
         return [];
     }
     _setExtraEntities(entities) {
         const updated = JSON.parse(JSON.stringify(this._config ?? { type: "custom:tech-art-room-card" }));
         if (!updated["sensors"] || typeof updated["sensors"] !== "object")
             updated["sensors"] = {};
-        updated["sensors"]["extras"] = entities.map((e) => ({ entity: e }));
+        updated["sensors"]["extras"] = entities
+            .filter((e) => e.entity && e.entity.trim())
+            .map((e) => ({
+            entity: e.entity,
+            name: e.name,
+            icon: e.icon,
+            precision: Number.isFinite(Number(e.precision)) ? Number(e.precision) : undefined,
+        }));
         this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: updated }, bubbles: true, composed: true }));
     }
     _footerButtons() {
@@ -1305,27 +1411,45 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
           <div class="form-row">
             <label>Extra sensor entities</label>
             <div class="light-entities">
-              ${extraEntities.map((entityId, idx) => b `
-                <div class="light-entity-row">
+              ${extraEntities.map((extra, idx) => b `
+                <div class="extra-entity-row">
                   <ha-selector
                     .hass=${this.hass}
-                    .value=${entityId}
+                    .value=${extra.entity}
                     .selector=${{ entity: { domain: ["sensor", "binary_sensor"] } }}
                     allow-custom-entity
                     .required=${false}
                     @value-changed=${(e) => {
             const updated = [...extraEntities];
-            updated[idx] = e.detail.value;
-            this._setExtraEntities(updated.filter(Boolean));
+            updated[idx] = { ...updated[idx], entity: e.detail.value ?? "" };
+            this._setExtraEntities(updated);
         }}
                   ></ha-selector>
+                  <input
+                    class="precision-input"
+                    type="number"
+                    min="0"
+                    max="4"
+                    step="1"
+                    .value=${extra.precision !== undefined ? String(extra.precision) : ""}
+                    placeholder="Prec."
+                    @input=${(e) => {
+            const raw = e.target.value;
+            const updated = [...extraEntities];
+            updated[idx] = {
+                ...updated[idx],
+                precision: raw === "" ? undefined : Number(raw),
+            };
+            this._setExtraEntities(updated);
+        }}
+                  />
                   <button class="remove-btn" @click=${() => {
             const updated = extraEntities.filter((_, i) => i !== idx);
             this._setExtraEntities(updated);
         }}>Remove</button>
                 </div>
               `)}
-              <button class="add-btn" @click=${() => this._setExtraEntities([...extraEntities, ""])}>+ Add sensor</button>
+              <button class="add-btn" @click=${() => this._setExtraEntities([...extraEntities, { entity: "" }])}>+ Add sensor</button>
             </div>
           </div>
         </div>
@@ -1510,6 +1634,22 @@ TechArtRoomCardEditor.styles = i$3 `
       grid-template-columns: 1fr auto;
       gap: 6px;
       align-items: center;
+    }
+    .extra-entity-row {
+      display: grid;
+      grid-template-columns: 1fr 92px auto;
+      gap: 6px;
+      align-items: center;
+    }
+    .precision-input {
+      background: var(--card-background-color);
+      border: 1px solid var(--divider-color);
+      border-radius: 4px;
+      padding: 8px 10px;
+      font-size: 13px;
+      color: var(--primary-text-color);
+      width: 100%;
+      box-sizing: border-box;
     }
     .remove-btn {
       border: 0;

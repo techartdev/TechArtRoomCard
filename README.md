@@ -53,6 +53,10 @@ sensors:
   air_quality_entity: sensor.living_room_air_quality
   pm25_entity: sensor.living_room_pm25
   power_entity: sensor.living_room_power
+  extras:
+    - entity: sensor.living_room_humidity
+      name: Humidity
+      precision: 1
 shades:
   entity: cover.living_room_shade
   secondary_entity: cover.living_room_shade_right
@@ -63,6 +67,7 @@ shades:
 
 - If `climate.entity` is absent/unavailable and `climate.fallback_entity` exists, fallback is shown instead of HVAC controls.
 - Lights/media/sensors/shades panels are hidden automatically when configured entities are missing.
+- `sensors.extras[].precision` is optional and controls decimal places (0-4) for extra sensor value display.
 - Use Lovelace visual card editor for common fields (title, weather/temp, lights, climate, media, sensors, shades).
 
 ## Development
