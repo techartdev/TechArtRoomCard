@@ -1446,9 +1446,7 @@ let TechArtRoomCardEditor = class TechArtRoomCardEditor extends i {
         const updated = JSON.parse(JSON.stringify(this._config ?? { type: "custom:tech-art-room-card" }));
         if (!updated["sensors"] || typeof updated["sensors"] !== "object")
             updated["sensors"] = {};
-        updated["sensors"]["extras"] = entities
-            .filter((e) => e.entity && e.entity.trim())
-            .map((e) => ({
+        updated["sensors"]["extras"] = entities.map((e) => ({
             entity: e.entity,
             name: e.name,
             icon: e.icon,

@@ -850,9 +850,7 @@ export class TechArtRoomCardEditor extends LitElement {
       JSON.stringify(this._config ?? { type: "custom:tech-art-room-card" })
     );
     if (!updated["sensors"] || typeof updated["sensors"] !== "object") updated["sensors"] = {};
-    (updated["sensors"] as Record<string, unknown>)["extras"] = entities
-      .filter((e) => e.entity && e.entity.trim())
-      .map((e) => ({
+    (updated["sensors"] as Record<string, unknown>)["extras"] = entities.map((e) => ({
         entity: e.entity,
         name: e.name,
         icon: e.icon,
