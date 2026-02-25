@@ -6,6 +6,9 @@ A Lovelace room dashboard card with a native Home Assistant look, visual editor 
 
 <img width="1046" height="613" alt="image" src="https://github.com/user-attachments/assets/922e2701-8765-4b0d-b817-ad1d1da1de92" />
 
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/fc902981-3142-4c11-8000-f940dbb1328a" />
+
+
 ## What it can do
 
 - 2-column room layout with sections for **Lights**, **Climate**, **Media**, **Sensors & Power**, and **Shades**
