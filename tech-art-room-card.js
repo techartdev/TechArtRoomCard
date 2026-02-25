@@ -757,7 +757,7 @@ const editorStyles = i$3 `
   }
 `;
 
-const CARD_VERSION = "0.1.17";
+const CARD_VERSION = "0.1.18";
 let TechArtRoomCard = class TechArtRoomCard extends i {
     setConfig(config) {
         if (!config?.type) {
