@@ -2,6 +2,8 @@
 
 A Lovelace room dashboard card with a native Home Assistant look, visual editor support, and dynamic sections.
 
+<img width="1042" height="622" alt="image" src="https://github.com/user-attachments/assets/a18422ea-eb2f-4c08-aaff-00516737580f" />
+
 <img width="1046" height="613" alt="image" src="https://github.com/user-attachments/assets/922e2701-8765-4b0d-b817-ad1d1da1de92" />
 
 ## What it can do
@@ -14,6 +16,9 @@ A Lovelace room dashboard card with a native Home Assistant look, visual editor 
 - User-defined footer action buttons (entity, icon, off-icon, label)
 - Per-section custom titles via `section_titles`
 - Sensor formatting with default **2 decimal places** and optional per-extra override
+
+<img width="1013" height="1139" alt="image" src="https://github.com/user-attachments/assets/22134d7a-9844-4064-9893-fa29ca6540f9" />
+
 
 ---
 
