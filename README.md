@@ -17,8 +17,7 @@ A Lovelace room dashboard card with a native Home Assistant look, visual editor 
 - Per-section custom titles via `section_titles`
 - Sensor formatting with default **2 decimal places** and optional per-extra override
 
-<img width="1013" height="1139" alt="image" src="https://github.com/user-attachments/assets/22134d7a-9844-4064-9893-fa29ca6540f9" />
-
+<img width="1014" height="1141" alt="image" src="https://github.com/user-attachments/assets/8aa451f2-07d1-46a0-9ffe-35488da59dea" />
 
 ---
 
