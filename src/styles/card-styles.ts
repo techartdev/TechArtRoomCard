@@ -479,10 +479,10 @@ export const cardStyles = css`
   .footer-btn {
     flex: 1 1 0;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 6px;
     padding: 8px 6px;
     border: none;
     background: transparent;
@@ -500,14 +500,16 @@ export const cardStyles = css`
   }
 
   .footer-btn:active {
-    background: color-mix(in srgb, var(--card-accent) 28%, transparent);
+    background: color-mix(in srgb, var(--card-accent) 16%, transparent);
   }
 
   .footer-btn ha-icon {
-    --mdc-icon-size: 20px;
+    --mdc-icon-size: 22px;
+    color: currentColor;
   }
 
   .footer-btn .footer-btn-text {
+    display: inline-block;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -516,12 +518,8 @@ export const cardStyles = css`
   }
 
   .footer-btn.is-on {
-    background: var(--card-accent);
-    color: #fff;
-  }
-
-  .footer-btn.is-on ha-icon {
-    color: #fff;
+    background: transparent;
+    color: var(--card-accent);
   }
 
   /* ── Responsive ── */
