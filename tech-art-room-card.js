@@ -175,6 +175,18 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
             hvac_mode: mode,
         });
     }
+    _hvacIcon(mode) {
+        const icons = {
+            off: "mdi:power",
+            heat: "mdi:fire",
+            cool: "mdi:snowflake",
+            dry: "mdi:water-percent",
+            auto: "mdi:fan-auto",
+            fan_only: "mdi:fan",
+            heat_cool: "mdi:thermostat-auto",
+        };
+        return icons[mode] ?? "mdi:fan";
+    }
     _footerAction(btn) {
         const entity = this._e(btn.entity);
         if (!entity)
@@ -322,19 +334,30 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         const target = climate.attributes.temperature ?? acTemp;
         const modes = climate.attributes.hvac_modes ?? [];
         const active = climate.state;
+        const minTarget = 10;
+        const maxTarget = 32;
+        const safeTarget = Number.isFinite(target) ? target : 21;
+        const clampedTarget = Math.min(maxTarget, Math.max(minTarget, safeTarget));
+        const progress = (clampedTarget - minTarget) / (maxTarget - minTarget);
+        const filledDegrees = Math.round(progress * 240);
+        const dialGradient = `conic-gradient(from 210deg, var(--card-accent) 0deg ${filledDegrees}deg, color-mix(in srgb, var(--divider-color, #444) 60%, transparent) ${filledDegrees}deg 240deg, transparent 240deg 360deg)`;
         return b `
       <section class="panel">
         <div class="panel-title">Climate</div>
         <div class="climate-body">
-          <span class="climate-mode-label">${active}</span>
-          <span class="climate-temp">${Math.round(currentTemp)}°</span>
-          <span class="climate-setpoint">Set to ${Math.round(target)}°</span>
+          <div class="climate-dial" style="background: ${dialGradient};">
+            <div class="climate-center">
+              <span class="climate-mode-label">${active}</span>
+              <span class="climate-temp">${Math.round(currentTemp)}°</span>
+              <span class="climate-setpoint"><ha-icon icon="mdi:thermometer"></ha-icon>${Math.round(clampedTarget)}°</span>
+            </div>
+          </div>
           <input
             class="climate-slider"
             type="range"
-            min="10"
-            max="32"
-            .value=${String(target)}
+            min=${String(minTarget)}
+            max=${String(maxTarget)}
+            .value=${String(clampedTarget)}
             @change=${(ev) => this._setTemperature(climate.entity_id, Number(ev.currentTarget.value))}
           />
         </div>
@@ -343,7 +366,7 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
               <button
                 class="mode-btn ${mode === active ? "active" : ""}"
                 @click=${() => this._setHvacMode(climate.entity_id, mode)}
-              >${mode}</button>
+              ><ha-icon icon=${this._hvacIcon(mode)}></ha-icon>${mode.replace("_", " ")}</button>
             `)}
         </div>
       </section>
@@ -702,16 +725,60 @@ TechArtRoomCard.styles = i$3 `
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 6px;
-      padding: 8px 0;
+      gap: 10px;
+      padding: 4px 0 2px;
+    }
+
+    .climate-dial {
+      width: min(235px, 100%);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      position: relative;
+      display: grid;
+      place-items: center;
+      background: color-mix(in srgb, var(--divider-color, #444) 45%, transparent);
+      overflow: hidden;
+    }
+
+    .climate-dial::before {
+      content: "";
+      position: absolute;
+      inset: 24px;
+      border-radius: 50%;
+      background: var(--panel-bg);
+      z-index: 1;
+    }
+
+    .climate-dial::after {
+      content: "";
+      position: absolute;
+      left: 10%;
+      right: 10%;
+      bottom: -3px;
+      height: 34%;
+      background: var(--panel-bg);
+      border-top-left-radius: 100px;
+      border-top-right-radius: 100px;
+      z-index: 2;
+    }
+
+    .climate-center {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      text-align: center;
+      margin-top: -8px;
     }
 
     .climate-mode-label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      color: var(--text-secondary);
-      letter-spacing: 0.05em;
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-transform: capitalize;
+      color: var(--text-primary);
+      letter-spacing: 0.01em;
     }
 
     .climate-temp {
@@ -722,38 +789,57 @@ TechArtRoomCard.styles = i$3 `
     }
 
     .climate-setpoint {
-      font-size: 0.85rem;
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: color-mix(in srgb, var(--card-accent) 70%, #fff 30%);
+    }
+
+    .climate-setpoint ha-icon {
+      --mdc-icon-size: 15px;
       color: var(--text-secondary);
     }
 
     .climate-slider {
       width: 100%;
-      margin-top: 4px;
+      margin-top: 2px;
     }
 
     .mode-row {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-top: 4px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+      gap: 7px;
+      width: 100%;
+      margin-top: 6px;
     }
 
     .mode-btn {
       border: 0;
-      border-radius: 999px;
-      padding: 5px 12px;
-      font-size: 0.75rem;
-      font-weight: 600;
+      border-radius: 12px;
+      padding: 7px 10px;
+      font-size: 0.8rem;
+      font-weight: 700;
       cursor: pointer;
-      transition: background 0.15s, color 0.15s;
-      background: color-mix(in srgb, var(--divider-color, #444) 50%, transparent);
+      transition: background 0.15s, color 0.15s, transform 0.15s;
+      background: color-mix(in srgb, var(--divider-color, #444) 48%, transparent);
       color: var(--text-primary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-transform: capitalize;
+    }
+
+    .mode-btn ha-icon {
+      --mdc-icon-size: 16px;
     }
 
     .mode-btn.active {
       background: var(--card-accent);
       color: #fff;
+      transform: translateY(-1px);
     }
 
     /* ── Media ── */

@@ -1,0 +1,39 @@
+# Windsurf Repository Rules
+
+Follow `AGENTS.md` as the primary instruction source for this repository.
+
+## Project-Specific Priorities
+
+1. Edit source in `src/tech-art-room-card.ts`; do not manually patch `tech-art-room-card.js` for source changes.
+2. Keep Home Assistant UX native:
+   - use `ha-selector` in the editor
+   - apply domain filtering where possible
+   - keep selector values clearable
+3. Treat Lovelace/editor config as potentially frozen:
+   - deep-clone before nested updates
+   - remove keys when values are cleared
+4. Preserve YAML backward compatibility unless migration is explicitly requested.
+5. Keep HACS artifact contract stable:
+   - build output is root `tech-art-room-card.js`
+   - `hacs.json` filename must match built artifact
+
+## Coupling Rule (Must Update Together)
+
+When adding/changing any config field, update all of:
+- interfaces/types (`RoomCardConfig` + nested types)
+- `setConfig()` normalization/default handling
+- runtime rendering/behavior that reads the field
+- editor UI controls + update helpers
+- `getStubConfig()` if relevant
+- `README.md` docs/examples if user-facing
+
+## Validation Before Finishing
+
+Run from repo root:
+- `npm run lint`
+- `npm run build`
+
+Then verify:
+- Lovelace editor can set/clear values
+- dynamic lists can add/remove entries
+- no invalid config regression
