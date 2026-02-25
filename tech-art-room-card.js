@@ -200,6 +200,64 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
             temperature: value,
         });
     }
+    _normalizeDegrees(deg) {
+        return ((deg % 360) + 360) % 360;
+    }
+    _circularDistance(a, b) {
+        const diff = Math.abs(a - b);
+        return Math.min(diff, 360 - diff);
+    }
+    _formatTemperature(value, step) {
+        const decimals = step >= 1 ? 0 : Math.min(2, (String(step).split(".")[1] ?? "").length || 1);
+        return value.toFixed(decimals).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
+    }
+    _snapToStep(value, min, max, step) {
+        const safeStep = Number.isFinite(step) && step > 0 ? step : 1;
+        const snapped = Math.round((value - min) / safeStep) * safeStep + min;
+        return Math.min(max, Math.max(min, Number(snapped.toFixed(2))));
+    }
+    _progressFromPointer(event, startDeg, sweepDeg) {
+        const dial = event.currentTarget;
+        const rect = dial.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const angle = this._normalizeDegrees((Math.atan2(event.clientY - cy, event.clientX - cx) * 180) / Math.PI);
+        const fromStart = this._normalizeDegrees(angle - startDeg);
+        if (fromStart <= sweepDeg) {
+            return fromStart / sweepDeg;
+        }
+        const endDeg = this._normalizeDegrees(startDeg + sweepDeg);
+        const startDist = this._circularDistance(angle, startDeg);
+        const endDist = this._circularDistance(angle, endDeg);
+        return startDist <= endDist ? 0 : 1;
+    }
+    _onClimateDialPointerDown(event, entityId, min, max, step, startDeg, sweepDeg) {
+        const dial = event.currentTarget;
+        dial.setPointerCapture(event.pointerId);
+        this._climateDrag = { pointerId: event.pointerId, entityId, min, max, step, startDeg, sweepDeg };
+        const progress = this._progressFromPointer(event, startDeg, sweepDeg);
+        this._climateDragValue = this._snapToStep(min + progress * (max - min), min, max, step);
+    }
+    _onClimateDialPointerMove(event) {
+        if (!this._climateDrag || event.pointerId !== this._climateDrag.pointerId)
+            return;
+        const drag = this._climateDrag;
+        const progress = this._progressFromPointer(event, drag.startDeg, drag.sweepDeg);
+        this._climateDragValue = this._snapToStep(drag.min + progress * (drag.max - drag.min), drag.min, drag.max, drag.step);
+    }
+    _onClimateDialPointerEnd(event) {
+        if (!this._climateDrag || event.pointerId !== this._climateDrag.pointerId)
+            return;
+        const dial = event.currentTarget;
+        if (dial.hasPointerCapture(event.pointerId)) {
+            dial.releasePointerCapture(event.pointerId);
+        }
+        if (this._climateDragValue !== undefined) {
+            this._setTemperature(this._climateDrag.entityId, this._climateDragValue);
+        }
+        this._climateDrag = undefined;
+        this._climateDragValue = undefined;
+    }
     _setHvacMode(entityId, mode) {
         this.hass.callService("climate", "set_hvac_mode", {
             entity_id: entityId,
@@ -379,37 +437,51 @@ let TechArtRoomCard = class TechArtRoomCard extends i {
         const target = climate.attributes.temperature ?? acTemp;
         const modes = climate.attributes.hvac_modes ?? [];
         const active = climate.state;
-        const minTarget = 10;
-        const maxTarget = 32;
+        const minTarget = Number.isFinite(Number(climate.attributes.min_temp)) ? Number(climate.attributes.min_temp) : 10;
+        const maxTarget = Number.isFinite(Number(climate.attributes.max_temp)) ? Number(climate.attributes.max_temp) : 32;
+        const tempStep = Number.isFinite(Number(climate.attributes.target_temp_step)) && Number(climate.attributes.target_temp_step) > 0
+            ? Number(climate.attributes.target_temp_step)
+            : 0.5;
         const safeTarget = Number.isFinite(target) ? target : 21;
         const clampedTarget = Math.min(maxTarget, Math.max(minTarget, safeTarget));
-        const progress = (clampedTarget - minTarget) / (maxTarget - minTarget);
-        const filledDegrees = Math.max(0, Math.min(240, Math.round(progress * 240)));
-        const dialGradient = `conic-gradient(from 210deg, var(--card-accent) 0deg ${filledDegrees}deg, color-mix(in srgb, var(--divider-color, #444) 60%, transparent) ${filledDegrees}deg 240deg, color-mix(in srgb, var(--divider-color, #444) 60%, transparent) 240deg 360deg)`;
-        const dotAngleDeg = 210 + filledDegrees;
+        const interactiveTarget = this._climateDrag?.entityId === climate.entity_id && this._climateDragValue !== undefined
+            ? this._climateDragValue
+            : clampedTarget;
+        const normalizedRange = Math.max(0.0001, maxTarget - minTarget);
+        const progress = Math.max(0, Math.min(1, (interactiveTarget - minTarget) / normalizedRange));
+        const startDeg = 150;
+        const sweepDeg = 240;
+        const radius = 41;
+        const arcLength = 2 * Math.PI * radius * (sweepDeg / 360);
+        const fillLength = arcLength * progress;
+        const endDeg = startDeg + sweepDeg;
+        const arcPath = `M ${50 + Math.cos((startDeg * Math.PI) / 180) * radius} ${50 + Math.sin((startDeg * Math.PI) / 180) * radius} A ${radius} ${radius} 0 1 1 ${50 + Math.cos((endDeg * Math.PI) / 180) * radius} ${50 + Math.sin((endDeg * Math.PI) / 180) * radius}`;
+        const dotAngleDeg = startDeg + progress * sweepDeg;
         const dotRadians = (dotAngleDeg * Math.PI) / 180;
-        const dotX = 50 + Math.cos(dotRadians) * 38;
-        const dotY = 50 + Math.sin(dotRadians) * 38;
+        const dotX = 50 + Math.cos(dotRadians) * radius;
+        const dotY = 50 + Math.sin(dotRadians) * radius;
         return b `
       <section class="panel">
         <div class="panel-title">Climate</div>
         <div class="climate-body">
-          <div class="climate-dial" style="background: ${dialGradient};">
+          <div
+            class="climate-dial"
+            @pointerdown=${(ev) => this._onClimateDialPointerDown(ev, climate.entity_id, minTarget, maxTarget, tempStep, startDeg, sweepDeg)}
+            @pointermove=${this._onClimateDialPointerMove}
+            @pointerup=${this._onClimateDialPointerEnd}
+            @pointercancel=${this._onClimateDialPointerEnd}
+          >
+            <svg class="climate-arc" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+              <path class="climate-arc-track" d=${arcPath}></path>
+              <path class="climate-arc-fill" d=${arcPath} style=${`stroke-dasharray: ${fillLength} 999;`}></path>
+            </svg>
             <span class="climate-dot" style="left:${dotX}%; top:${dotY}%;"></span>
             <div class="climate-center">
               <span class="climate-mode-label">${active}</span>
               <span class="climate-temp">${Math.round(currentTemp)}°</span>
-              <span class="climate-setpoint"><ha-icon icon="mdi:thermometer"></ha-icon>${Math.round(clampedTarget)}°</span>
+              <span class="climate-setpoint"><ha-icon icon="mdi:thermometer"></ha-icon>${this._formatTemperature(interactiveTarget, tempStep)}°</span>
             </div>
           </div>
-          <input
-            class="climate-slider"
-            type="range"
-            min=${String(minTarget)}
-            max=${String(maxTarget)}
-            .value=${String(clampedTarget)}
-            @change=${(ev) => this._setTemperature(climate.entity_id, Number(ev.currentTarget.value))}
-          />
         </div>
         <div class="mode-row">
           ${modes.map((mode) => b `
@@ -786,30 +858,40 @@ TechArtRoomCard.styles = i$3 `
       position: relative;
       display: grid;
       place-items: center;
-      background: color-mix(in srgb, var(--divider-color, #444) 45%, transparent);
+      background: color-mix(in srgb, var(--divider-color, #444) 18%, transparent);
       overflow: hidden;
+      touch-action: none;
+      cursor: pointer;
+    }
+
+    .climate-arc {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+
+    .climate-arc-track,
+    .climate-arc-fill {
+      fill: none;
+      stroke-width: 10;
+      stroke-linecap: round;
+    }
+
+    .climate-arc-track {
+      stroke: color-mix(in srgb, var(--divider-color, #444) 62%, transparent);
+    }
+
+    .climate-arc-fill {
+      stroke: var(--card-accent);
     }
 
     .climate-dial::before {
       content: "";
       position: absolute;
-      inset: 21px;
+      inset: 22px;
       border-radius: 50%;
       background: var(--panel-bg);
       z-index: 1;
-    }
-
-    .climate-dial::after {
-      content: "";
-      position: absolute;
-      left: 10%;
-      right: 10%;
-      bottom: -3px;
-      height: 35%;
-      background: var(--panel-bg);
-      border-top-left-radius: 100px;
-      border-top-right-radius: 100px;
-      z-index: 2;
     }
 
     .climate-dot {
@@ -862,11 +944,6 @@ TechArtRoomCard.styles = i$3 `
     .climate-setpoint ha-icon {
       --mdc-icon-size: 15px;
       color: var(--text-secondary);
-    }
-
-    .climate-slider {
-      width: 100%;
-      margin-top: -1px;
     }
 
     .mode-row {
@@ -1054,28 +1131,29 @@ TechArtRoomCard.styles = i$3 `
     .footer-bar {
       display: flex;
       width: 100%;
-      border-top: 1px solid var(--divider-color, rgba(0,0,0,0.12));
-      margin-top: 12px;
+      margin-top: 10px;
       overflow: hidden;
-      border-radius: 0 0 var(--ha-card-border-radius, 12px) var(--ha-card-border-radius, 12px);
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--divider-color, #444) 36%, transparent);
+      border: 1px solid color-mix(in srgb, var(--divider-color, #444) 52%, transparent);
     }
 
     .footer-btn {
-      flex: 1;
+      flex: 1 1 0;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: 4px;
-      padding: 10px 4px;
+      padding: 8px 6px;
       border: none;
-      background: var(--card-background-color, #fff);
-      color: var(--primary-text-color);
+      background: transparent;
+      color: var(--text-primary);
       cursor: pointer;
-      font-size: 0.72rem;
-      font-weight: 500;
-      transition: background 0.15s;
-      border-right: 1px solid var(--divider-color, rgba(0,0,0,0.12));
+      font-size: 0.74rem;
+      font-weight: 700;
+      transition: background 0.15s, color 0.15s;
+      border-right: 1px solid color-mix(in srgb, var(--divider-color, #444) 55%, transparent);
       min-width: 0;
     }
 
@@ -1084,11 +1162,11 @@ TechArtRoomCard.styles = i$3 `
     }
 
     .footer-btn:active {
-      background: color-mix(in srgb, var(--primary-color, #ff8800) 12%, var(--card-background-color, #fff));
+      background: color-mix(in srgb, var(--card-accent) 28%, transparent);
     }
 
     .footer-btn ha-icon {
-      --mdc-icon-size: 22px;
+      --mdc-icon-size: 20px;
     }
 
     .footer-btn .footer-btn-text {
@@ -1099,8 +1177,13 @@ TechArtRoomCard.styles = i$3 `
       padding: 0 2px;
     }
 
+    .footer-btn.is-on {
+      background: var(--card-accent);
+      color: #fff;
+    }
+
     .footer-btn.is-on ha-icon {
-      color: var(--card-accent, var(--primary-color, #ff8800));
+      color: #fff;
     }
 
     /* ── Responsive ── */
@@ -1145,6 +1228,9 @@ __decorate([
 __decorate([
     r()
 ], TechArtRoomCard.prototype, "_config", void 0);
+__decorate([
+    r()
+], TechArtRoomCard.prototype, "_climateDragValue", void 0);
 TechArtRoomCard = __decorate([
     t("tech-art-room-card")
 ], TechArtRoomCard);
