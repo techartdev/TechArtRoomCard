@@ -6,6 +6,10 @@ A Lovelace room dashboard card with a native Home Assistant look, visual editor 
 
 <img width="1046" height="613" alt="image" src="https://github.com/user-attachments/assets/922e2701-8765-4b0d-b817-ad1d1da1de92" />
 
+<img width="1536" height="542" alt="ChatGPT Image Feb 25, 2026, 11_37_02 PM" src="https://github.com/user-attachments/assets/7bf69a84-2adb-4efe-af6c-59d150dc1f20" />
+
+
+
 ## What it can do
 
 - 2-column room layout with sections for **Lights**, **Climate**, **Media**, **Sensors & Power**, and **Shades**
@@ -17,8 +21,7 @@ A Lovelace room dashboard card with a native Home Assistant look, visual editor 
 - Per-section custom titles via `section_titles`
 - Sensor formatting with default **2 decimal places** and optional per-extra override
 
-<img width="1013" height="1139" alt="image" src="https://github.com/user-attachments/assets/22134d7a-9844-4064-9893-fa29ca6540f9" />
-
+<img width="1014" height="1141" alt="image" src="https://github.com/user-attachments/assets/8aa451f2-07d1-46a0-9ffe-35488da59dea" />
 
 ---
 
@@ -159,3 +162,8 @@ npm install
 npm run lint
 npm run build
 ```
+
+## Support / Donations
+
+If you find this useful and you want to bring me a coffee to make more useful things, or support the project, use the link below:
+- https://revolut.me/vanyo6dhw
